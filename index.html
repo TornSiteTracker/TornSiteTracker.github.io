@@ -5,11 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Torn Target Manager</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: #0f172a;
@@ -17,10 +13,7 @@
             min-height: 100vh;
             padding: 20px;
         }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
+        .container { max-width: 1200px; margin: 0 auto; }
         h1 {
             text-align: center;
             color: #38bdf8;
@@ -52,9 +45,7 @@
             font-size: 0.85rem;
             font-weight: 600;
         }
-        .admin-badge.visible {
-            display: inline-flex;
-        }
+        .admin-badge.visible { display: inline-flex; }
         .stats-bar {
             display: flex;
             justify-content: center;
@@ -99,12 +90,8 @@
             outline: none;
             transition: border-color 0.2s;
         }
-        .controls input:focus, .controls select:focus {
-            border-color: #38bdf8;
-        }
-        .controls input[type="text"] {
-            min-width: 220px;
-        }
+        .controls input:focus, .controls select:focus { border-color: #38bdf8; }
+        .controls input[type="text"] { min-width: 220px; }
         .btn {
             background: #0ea5e9;
             color: white;
@@ -119,58 +106,23 @@
             align-items: center;
             gap: 6px;
         }
-        .btn:hover {
-            background: #0284c7;
-            transform: translateY(-1px);
-        }
-        .btn-danger {
-            background: #ef4444;
-        }
-        .btn-danger:hover {
-            background: #dc2626;
-        }
-        .btn-success {
-            background: #22c55e;
-        }
-        .btn-success:hover {
-            background: #16a34a;
-        }
-        .btn-secondary {
-            background: #475569;
-        }
-        .btn-secondary:hover {
-            background: #334155;
-        }
-        .btn-admin {
-            background: #a855f7;
-        }
-        .btn-admin:hover {
-            background: #9333ea;
-        }
-        .btn-logout {
-            background: #64748b;
-        }
-        .btn-logout:hover {
-            background: #475569;
-        }
-        .btn-refresh {
-            background: #f59e0b;
-        }
-        .btn-refresh:hover {
-            background: #d97706;
-        }
-        .btn-settings {
-            background: #6366f1;
-        }
-        .btn-settings:hover {
-            background: #4f46e5;
-        }
-        .admin-only {
-            display: none !important;
-        }
-        .admin-only.visible {
-            display: inline-flex !important;
-        }
+        .btn:hover { background: #0284c7; transform: translateY(-1px); }
+        .btn-danger { background: #ef4444; }
+        .btn-danger:hover { background: #dc2626; }
+        .btn-success { background: #22c55e; }
+        .btn-success:hover { background: #16a34a; }
+        .btn-secondary { background: #475569; }
+        .btn-secondary:hover { background: #334155; }
+        .btn-admin { background: #a855f7; }
+        .btn-admin:hover { background: #9333ea; }
+        .btn-logout { background: #64748b; }
+        .btn-logout:hover { background: #475569; }
+        .btn-refresh { background: #f59e0b; }
+        .btn-refresh:hover { background: #d97706; }
+        .btn-settings { background: #6366f1; }
+        .btn-settings:hover { background: #4f46e5; }
+        .admin-only { display: none !important; }
+        .admin-only.visible { display: inline-flex !important; }
         .add-form {
             background: #1e293b;
             border: 1px solid #334155;
@@ -179,9 +131,7 @@
             margin-bottom: 25px;
             display: none;
         }
-        .add-form.active {
-            display: block;
-        }
+        .add-form.active { display: block; }
         .add-form h3 {
             color: #38bdf8;
             margin-bottom: 15px;
@@ -203,9 +153,7 @@
             border-radius: 6px;
             font-size: 0.9rem;
         }
-        .form-row input::placeholder {
-            color: #64748b;
-        }
+        .form-row input::placeholder { color: #64748b; }
         table {
             width: 100%;
             border-collapse: collapse;
@@ -214,9 +162,7 @@
             overflow: hidden;
             border: 1px solid #334155;
         }
-        thead {
-            background: #0f172a;
-        }
+        thead { background: #0f172a; }
         th {
             padding: 14px 12px;
             text-align: left;
@@ -230,9 +176,7 @@
             position: relative;
             white-space: nowrap;
         }
-        th:hover {
-            color: #38bdf8;
-        }
+        th:hover { color: #38bdf8; }
         th .sort-icon {
             margin-left: 4px;
             opacity: 0.5;
@@ -247,9 +191,7 @@
             border-top: 1px solid #334155;
             font-size: 0.9rem;
         }
-        tr:hover {
-            background: #252f47;
-        }
+        tr:hover { background: #252f47; }
         .name-cell {
             display: flex;
             flex-direction: column;
@@ -267,9 +209,7 @@
             color: #38bdf8;
             text-decoration: none;
         }
-        .player-id a:hover {
-            text-decoration: underline;
-        }
+        .player-id a:hover { text-decoration: underline; }
         .level-badge {
             display: inline-block;
             background: #0f172a;
@@ -299,29 +239,16 @@
             font-weight: 600;
             color: #a78bfa;
         }
-        .stats-fresh {
-            color: #22c55e;
-        }
-        .stats-stale {
-            color: #eab308;
-        }
-        .stats-old {
-            color: #ef4444;
-        }
-        .stats-na {
-            color: #64748b;
-        }
+        .stats-fresh { color: #22c55e; }
+        .stats-stale { color: #eab308; }
+        .stats-old { color: #ef4444; }
+        .stats-na { color: #64748b; }
         .inactive {
             color: #94a3b8;
             font-size: 0.9rem;
         }
-        .inactive.warn {
-            color: #f97316;
-        }
-        .inactive.danger {
-            color: #ef4444;
-            font-weight: 600;
-        }
+        .inactive.warn { color: #f97316; }
+        .inactive.danger { color: #ef4444; font-weight: 600; }
         .actions {
             display: flex;
             gap: 6px;
@@ -336,26 +263,15 @@
             font-size: 0.8rem;
             transition: background 0.2s;
         }
-        .actions button:hover {
-            background: #475569;
-        }
-        .actions .btn-del:hover {
-            background: #ef4444;
-            color: white;
-        }
-        .actions .btn-edit:hover {
-            background: #0ea5e9;
-            color: white;
-        }
+        .actions button:hover { background: #475569; }
+        .actions .btn-del:hover { background: #ef4444; color: white; }
+        .actions .btn-edit:hover { background: #0ea5e9; color: white; }
         .empty-state {
             text-align: center;
             padding: 60px 20px;
             color: #64748b;
         }
-        .empty-state h3 {
-            color: #94a3b8;
-            margin-bottom: 10px;
-        }
+        .empty-state h3 { color: #94a3b8; margin-bottom: 10px; }
         .toast {
             position: fixed;
             bottom: 20px;
@@ -394,9 +310,7 @@
             justify-content: center;
             align-items: center;
         }
-        .modal.active {
-            display: flex;
-        }
+        .modal.active { display: flex; }
         .modal-box {
             background: #1e293b;
             border: 1px solid #334155;
@@ -406,10 +320,7 @@
             max-width: 450px;
             text-align: center;
         }
-        .modal-box h3 {
-            color: #38bdf8;
-            margin-bottom: 20px;
-        }
+        .modal-box h3 { color: #38bdf8; margin-bottom: 20px; }
         .modal-box input {
             width: 100%;
             background: #0f172a;
@@ -420,10 +331,7 @@
             margin-bottom: 15px;
             font-size: 1rem;
         }
-        .modal-box input:focus {
-            outline: none;
-            border-color: #a855f7;
-        }
+        .modal-box input:focus { outline: none; border-color: #a855f7; }
         .modal-box .btn {
             width: 100%;
             justify-content: center;
@@ -435,9 +343,7 @@
             border: none;
             cursor: pointer;
         }
-        .modal-box .cancel-btn:hover {
-            color: #e2e8f0;
-        }
+        .modal-box .cancel-btn:hover { color: #e2e8f0; }
         .modal-box .info-text {
             color: #94a3b8;
             font-size: 0.85rem;
@@ -450,12 +356,12 @@
             border-radius: 6px;
             font-size: 0.9rem;
         }
-        .key-status.saved {
+        .modal-box .key-status.saved {
             background: #064e3b;
             color: #22c55e;
             border: 1px solid #22c55e;
         }
-        .key-status.none {
+        .modal-box .key-status.none {
             background: #451a03;
             color: #f59e0b;
             border: 1px solid #f59e0b;
@@ -469,9 +375,7 @@
             overflow: hidden;
             display: none;
         }
-        .progress-bar.active {
-            display: block;
-        }
+        .progress-bar.active { display: block; }
         .progress-fill {
             height: 100%;
             background: #22c55e;
@@ -479,23 +383,11 @@
             transition: width 0.3s;
         }
         @media (max-width: 768px) {
-            th, td {
-                padding: 8px 6px;
-                font-size: 0.8rem;
-            }
-            .controls {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            .controls input, .controls select, .controls button {
-                width: 100%;
-            }
-            .form-row {
-                flex-direction: column;
-            }
-            .form-row input, .form-row select {
-                width: 100%;
-            }
+            th, td { padding: 8px 6px; font-size: 0.8rem; }
+            .controls { flex-direction: column; align-items: stretch; }
+            .controls input, .controls select, .controls button { width: 100%; }
+            .form-row { flex-direction: column; }
+            .form-row input, .form-row select { width: 100%; }
             h1 { font-size: 1.5rem; }
         }
     </style>
@@ -504,13 +396,13 @@
     <div class="container">
         <div class="top-bar">
             <div class="admin-badge" id="adminBadge">
-                👑 Admin Mode
-                <button class="btn btn-logout" style="padding:4px 10px; font-size:0.75rem;" onclick="logout()">🚪 Logout</button>
+                Admin Mode
+                <button class="btn btn-logout" style="padding:4px 10px; font-size:0.75rem;" onclick="logout()">Logout</button>
             </div>
-            <button class="btn btn-admin" id="loginBtn" onclick="showLogin()">🔐 Admin Login</button>
+            <button class="btn btn-admin" id="loginBtn" onclick="showLogin()">Admin Login</button>
         </div>
 
-        <h1>⚔️ Torn Target Manager</h1>
+        <h1>Torn Target Manager</h1>
         <p class="subtitle">Track, sort, and manage your attack targets</p>
 
         <div class="stats-bar">
@@ -533,7 +425,7 @@
         </div>
 
         <div class="controls">
-            <input type="text" id="searchInput" placeholder="🔍 Search name or ID...">
+            <input type="text" id="searchInput" placeholder="Search name or ID...">
             <select id="filterFF">
                 <option value="">All FF</option>
                 <option value="1">FF 1</option>
@@ -645,11 +537,11 @@
                 <option value="99">Level 99</option>
                 <option value="100">Level 100</option>
             </select>
-            <button class="btn btn-success admin-only" id="addTargetBtn" onclick="toggleAddForm()">➕ Add Target</button>
-            <button class="btn btn-secondary" onclick="exportData()">📥 Export</button>
-            <button class="btn btn-refresh admin-only" id="refreshBtn" onclick="refreshFromFFScouter()">🔄 Refresh Stats</button>
-            <button class="btn btn-settings admin-only" id="settingsBtn" onclick="showSettings()">⚙️ Settings</button>
-            <button class="btn btn-danger admin-only" id="clearAllBtn" onclick="clearAll()">🗑️ Clear All</button>
+            <button class="btn btn-success admin-only" id="addTargetBtn" onclick="toggleAddForm()">Add Target</button>
+            <button class="btn btn-secondary" onclick="exportData()">Export</button>
+            <button class="btn btn-refresh admin-only" id="refreshBtn" onclick="refreshFromFFScouter()">Refresh Stats</button>
+            <button class="btn btn-settings admin-only" id="settingsBtn" onclick="showSettings()">Settings</button>
+            <button class="btn btn-danger admin-only" id="clearAllBtn" onclick="clearAll()">Clear All</button>
         </div>
 
         <div class="progress-bar" id="progressBar">
@@ -657,7 +549,7 @@
         </div>
 
         <div class="add-form" id="addForm">
-            <h3>➕ Add New Target</h3>
+            <h3>Add New Target</h3>
             <div class="form-row">
                 <input type="text" id="newName" placeholder="Username">
                 <input type="number" id="newId" placeholder="Player ID">
@@ -674,13 +566,13 @@
                 <input type="text" id="newInactive" placeholder="Inactive (e.g. 15 days ago)">
             </div>
             <div style="display:flex; gap:10px;">
-                <button class="btn btn-success" onclick="addTarget()">💾 Save Target</button>
-                <button class="btn btn-secondary" onclick="toggleAddForm()">❌ Cancel</button>
+                <button class="btn btn-success" onclick="addTarget()">Save Target</button>
+                <button class="btn btn-secondary" onclick="toggleAddForm()">Cancel</button>
             </div>
         </div>
 
         <div class="add-form" id="editForm">
-            <h3>✏️ Edit Target</h3>
+            <h3>Edit Target</h3>
             <div class="form-row">
                 <input type="hidden" id="editIndex">
                 <input type="text" id="editName" placeholder="Username">
@@ -698,20 +590,20 @@
                 <input type="text" id="editInactive" placeholder="Inactive (e.g. 15 days ago)">
             </div>
             <div style="display:flex; gap:10px;">
-                <button class="btn btn-success" onclick="saveEdit()">💾 Update</button>
-                <button class="btn btn-secondary" onclick="closeEditForm()">❌ Cancel</button>
+                <button class="btn btn-success" onclick="saveEdit()">Update</button>
+                <button class="btn btn-secondary" onclick="closeEditForm()">Cancel</button>
             </div>
         </div>
 
         <table>
             <thead>
                 <tr>
-                    <th onclick="sortBy('name')">Player <span class="sort-icon" id="sort-name">↕</span></th>
-                    <th onclick="sortBy('level')">Level <span class="sort-icon" id="sort-level">↕</span></th>
-                    <th onclick="sortBy('ff')">Fair Fight <span class="sort-icon" id="sort-ff">↕</span></th>
-                    <th onclick="sortBy('stats')">Est Stats <span class="sort-icon" id="sort-stats">↕</span></th>
-                    <th onclick="sortBy('inactive')">Inactive <span class="sort-icon" id="sort-inactive">↕</span></th>
-                    <th onclick="sortBy('lastUpdated')">Info <span class="sort-icon" id="sort-lastUpdated">↕</span></th>
+                    <th onclick="sortBy('name')">Player <span class="sort-icon" id="sort-name">&#x2195;</span></th>
+                    <th onclick="sortBy('level')">Level <span class="sort-icon" id="sort-level">&#x2195;</span></th>
+                    <th onclick="sortBy('ff')">Fair Fight <span class="sort-icon" id="sort-ff">&#x2195;</span></th>
+                    <th onclick="sortBy('stats')">Est Stats <span class="sort-icon" id="sort-stats">&#x2195;</span></th>
+                    <th onclick="sortBy('inactive')">Inactive <span class="sort-icon" id="sort-inactive">&#x2195;</span></th>
+                    <th onclick="sortBy('lastUpdated')">Info <span class="sort-icon" id="sort-lastUpdated">&#x2195;</span></th>
                     <th class="admin-only" id="actionsHeader">Actions</th>
                 </tr>
             </thead>
@@ -725,7 +617,7 @@
     <!-- Login Modal -->
     <div class="modal" id="loginModal">
         <div class="modal-box">
-            <h3>🔐 Admin Login</h3>
+            <h3>Admin Login</h3>
             <input type="password" id="loginPassword" placeholder="Enter admin password...">
             <button class="btn btn-admin" onclick="doLogin()">Login</button>
             <button class="cancel-btn" onclick="hideLogin()">Cancel</button>
@@ -735,14 +627,14 @@
     <!-- Settings Modal -->
     <div class="modal" id="settingsModal">
         <div class="modal-box">
-            <h3>⚙️ FFScouter Settings</h3>
+            <h3>FFScouter Settings</h3>
             <div class="info-text">
                 Enter your FFScouter API key to enable stat refreshing. Get your free key at <a href="https://ffscouter.com" target="_blank" style="color:#38bdf8;">ffscouter.com</a>
             </div>
             <div class="key-status" id="keyStatus"></div>
             <input type="text" id="ffscouterKey" placeholder="Paste your 16-char FFScouter API key..." maxlength="16">
-            <button class="btn btn-success" onclick="saveSettings()">💾 Save Key</button>
-            <button class="btn btn-danger" onclick="clearSettings()">🗑️ Clear Key</button>
+            <button class="btn btn-success" onclick="saveSettings()">Save Key</button>
+            <button class="btn btn-danger" onclick="clearSettings()">Clear Key</button>
             <button class="cancel-btn" onclick="hideSettings()">Cancel</button>
         </div>
     </div>
@@ -828,7 +720,6 @@
             const saved = localStorage.getItem('tornTargets');
             if (saved) {
                 targets = JSON.parse(saved);
-                // Migrate old data without ffscouter fields
                 targets.forEach(t => {
                     if (t.ffscouterStats === undefined) t.ffscouterStats = null;
                     if (t.ffscouterFF === undefined) t.ffscouterFF = null;
@@ -921,10 +812,10 @@
 
             if (ffscouterKey && ffscouterKey.length === 16) {
                 statusDiv.className = 'key-status saved';
-                statusDiv.textContent = '✅ API key saved (' + ffscouterKey.substring(0, 4) + '****' + ffscouterKey.substring(12) + ')';
+                statusDiv.textContent = 'API key saved (' + ffscouterKey.substring(0, 4) + '****' + ffscouterKey.substring(12) + ')';
             } else {
                 statusDiv.className = 'key-status none';
-                statusDiv.textContent = '⚠️ No API key saved. Get one at ffscouter.com';
+                statusDiv.textContent = 'No API key saved. Get one at ffscouter.com';
             }
 
             document.getElementById('settingsModal').classList.add('active');
@@ -952,11 +843,11 @@
             localStorage.removeItem('tornFFScouterKey');
             document.getElementById('ffscouterKey').value = '';
             document.getElementById('keyStatus').className = 'key-status none';
-            document.getElementById('keyStatus').textContent = '⚠️ No API key saved';
+            document.getElementById('keyStatus').textContent = 'No API key saved';
             showToast('API key cleared', 'info');
         }
 
-        // ===================== FFSCOUTER REFRESH =====================
+        // ===================== FFSCOUTER REFRESH (BATCH API) =====================
         async function refreshFromFFScouter() {
             if (!isAdmin) return;
             if (!ffscouterKey || ffscouterKey.length !== 16) {
@@ -972,60 +863,68 @@
 
             showToast('Fetching stats from FFScouter...', 'info');
 
-            // FFScouter API: get-stats endpoint
-            // We need to fetch each player individually since the API requires player IDs
-            const total = targets.length;
-            let updated = 0;
-            let failed = 0;
+            // Build comma-separated list of all target IDs (batch up to 205)
+            const targetIds = targets.map(t => t.id).join(',');
 
-            for (let i = 0; i < total; i++) {
-                const t = targets[i];
-                try {
-                    const url = `${FFSCOUTER_API_BASE}/get-stats?player_id=${t.id}&api_key=${ffscouterKey}`;
-                    const response = await fetch(url, { method: 'GET' });
+            try {
+                const url = `${FFSCOUTER_API_BASE}/get-stats?key=${ffscouterKey}&targets=${targetIds}`;
+                const response = await fetch(url, { method: 'GET' });
+                progressFill.style.width = '50%';
 
-                    if (!response.ok) {
-                        failed++;
-                        continue;
-                    }
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    const errMsg = errData.error || 'HTTP ' + response.status;
+                    showToast('FFScouter error: ' + errMsg, 'error');
+                    progressBar.classList.remove('active');
+                    return;
+                }
 
-                    const data = await response.json();
+                const data = await response.json();
+                progressFill.style.width = '80%';
 
-                    if (data.success && data.data) {
-                        const stats = data.data;
-                        t.ffscouterStats = stats.bs_estimate || null;
-                        t.ffscouterFF = stats.fair_fight || null;
-                        t.lastUpdated = stats.last_updated ? new Date(stats.last_updated * 1000).toISOString() : null;
-                        updated++;
+                // The response is an array of player objects
+                if (Array.isArray(data)) {
+                    let updated = 0;
+                    let noData = 0;
+
+                    data.forEach(playerData => {
+                        const pid = String(playerData.player_id);
+                        const target = targets.find(t => t.id === pid);
+                        if (target) {
+                            if (playerData.bs_estimate !== null && playerData.bs_estimate !== undefined) {
+                                target.ffscouterStats = playerData.bs_estimate;
+                                target.ffscouterFF = playerData.fair_fight;
+                                target.lastUpdated = playerData.last_updated ? new Date(playerData.last_updated * 1000).toISOString() : null;
+                                updated++;
+                            } else {
+                                noData++;
+                            }
+                        }
+                    });
+
+                    saveTargets();
+                    render();
+                    updateStats();
+
+                    if (updated > 0) {
+                        showToast(`Updated ${updated} targets from FFScouter (${noData} no data)`, 'success');
                     } else {
-                        failed++;
+                        showToast('No FFScouter data found for any targets. They may not be in the database yet.', 'warn');
                     }
-                } catch (err) {
-                    failed++;
+                } else if (data.error) {
+                    showToast('FFScouter error: ' + data.error, 'error');
+                } else {
+                    showToast('Unexpected response from FFScouter', 'error');
                 }
-
-                // Update progress
-                const pct = ((i + 1) / total) * 100;
-                progressFill.style.width = pct + '%';
-
-                // Rate limit: small delay between requests
-                if (i < total - 1) {
-                    await new Promise(r => setTimeout(r, 300));
-                }
+            } catch (err) {
+                showToast('Network error: ' + err.message, 'error');
             }
 
-            progressBar.classList.remove('active');
-            progressFill.style.width = '0%';
-
-            saveTargets();
-            render();
-            updateStats();
-
-            if (updated > 0) {
-                showToast(`Updated ${updated}/${total} targets from FFScouter (${failed} failed)`, 'success');
-            } else {
-                showToast('No stats found. Players may not be in FFScouter database.', 'warn');
-            }
+            progressFill.style.width = '100%';
+            setTimeout(() => {
+                progressBar.classList.remove('active');
+                progressFill.style.width = '0%';
+            }, 500);
         }
 
         // ===================== RENDER =====================
@@ -1036,7 +935,7 @@
 
             let filtered = targets.filter(t => {
                 const matchSearch = t.name.toLowerCase().includes(search) || t.id.includes(search);
-                const matchFF = !ffFilter || t.ff == ffFilter;
+                const matchFF = !ffFilter || (t.ffscouterFF || t.ff) == ffFilter;
                 const matchLevel = !levelFilter || t.level == levelFilter;
                 return matchSearch && matchFF && matchLevel;
             });
@@ -1051,9 +950,11 @@
                     va = a.lastUpdated ? new Date(a.lastUpdated).getTime() : 0;
                     vb = b.lastUpdated ? new Date(b.lastUpdated).getTime() : 0;
                 } else if (sortCol === 'stats') {
-                    // Use ffscouter stats if available, otherwise manual stats
                     va = a.ffscouterStats !== null ? a.ffscouterStats : a.stats;
                     vb = b.ffscouterStats !== null ? b.ffscouterStats : b.stats;
+                } else if (sortCol === 'ff') {
+                    va = a.ffscouterFF !== null ? a.ffscouterFF : a.ff;
+                    vb = b.ffscouterFF !== null ? b.ffscouterFF : b.ff;
                 }
                 if (typeof va === 'string') va = va.toLowerCase();
                 if (typeof vb === 'string') vb = vb.toLowerCase();
@@ -1072,7 +973,6 @@
                 const realIndex = targets.indexOf(t);
                 const inactiveClass = getInactiveClass(t.inactive);
 
-                // Determine stats display
                 let statsDisplay = '';
                 let statsClass = 'stats-value';
                 if (t.ffscouterStats !== null && t.ffscouterStats !== undefined) {
@@ -1090,7 +990,6 @@
                     statsDisplay = t.stats ? t.stats.toLocaleString() : 'N/A';
                 }
 
-                // Info column
                 let infoDisplay = '';
                 if (t.lastUpdated) {
                     const date = new Date(t.lastUpdated);
@@ -1098,16 +997,16 @@
                     let ageColor = '#22c55e';
                     if (daysOld > 7) ageColor = '#eab308';
                     if (daysOld > 30) ageColor = '#ef4444';
-                    infoDisplay = `<span style="color:${ageColor};font-size:0.8rem;">📊 ${date.toLocaleDateString()}</span>`;
+                    infoDisplay = `<span style="color:${ageColor};font-size:0.8rem;">${date.toLocaleDateString()}</span>`;
                 } else {
-                    infoDisplay = '<span style="color:#64748b;font-size:0.8rem;">—</span>';
+                    infoDisplay = '<span style="color:#64748b;font-size:0.8rem;">-</span>';
                 }
 
                 const actionsCell = isAdmin ? `
                     <td>
                         <div class="actions">
-                            <button class="btn-edit" onclick="editTarget(${realIndex})">✏️</button>
-                            <button class="btn-del" onclick="deleteTarget(${realIndex})">🗑️</button>
+                            <button class="btn-edit" onclick="editTarget(${realIndex})">Edit</button>
+                            <button class="btn-del" onclick="deleteTarget(${realIndex})">Del</button>
                         </div>
                     </td>` : '';
 
@@ -1120,7 +1019,7 @@
                         </div>
                     </td>
                     <td><span class="level-badge">${t.level}</span></td>
-                    <td><span class="ff-badge ff-${t.ffscouterFF || t.ff}">${t.ffscouterFF || t.ff}</span></td>
+                    <td><span class="ff-badge ff-${Math.round(t.ffscouterFF || t.ff)}">${(t.ffscouterFF || t.ff).toFixed ? (t.ffscouterFF || t.ff).toFixed(2) : (t.ffscouterFF || t.ff)}</span></td>
                     <td><span class="${statsClass}">${statsDisplay}</span></td>
                     <td><span class="inactive ${inactiveClass}">${escapeHtml(t.inactive)}</span></td>
                     <td>${infoDisplay}</td>
@@ -1132,7 +1031,7 @@
             const activeTh = document.getElementById('sort-' + sortCol);
             if (activeTh) {
                 activeTh.parentElement.classList.add('sorted');
-                activeTh.textContent = sortDir === 'asc' ? '▲' : '▼';
+                activeTh.textContent = sortDir === 'asc' ? '&#x25B2;' : '&#x25BC;';
             }
         }
 
@@ -1156,7 +1055,7 @@
             }
             ['name','level','ff','stats','inactive','lastUpdated'].forEach(c => {
                 const el = document.getElementById('sort-' + c);
-                if (el) el.textContent = '↕';
+                if (el) el.textContent = '\u2195';
             });
             render();
         }
