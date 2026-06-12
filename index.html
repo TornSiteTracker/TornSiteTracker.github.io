@@ -38,6 +38,7 @@
             display: flex;
             justify-content: flex-end;
             margin-bottom: 10px;
+            gap: 10px;
         }
         .admin-badge {
             display: none;
@@ -151,6 +152,18 @@
         }
         .btn-logout:hover {
             background: #475569;
+        }
+        .btn-refresh {
+            background: #f59e0b;
+        }
+        .btn-refresh:hover {
+            background: #d97706;
+        }
+        .btn-settings {
+            background: #6366f1;
+        }
+        .btn-settings:hover {
+            background: #4f46e5;
         }
         .admin-only {
             display: none !important;
@@ -286,6 +299,18 @@
             font-weight: 600;
             color: #a78bfa;
         }
+        .stats-fresh {
+            color: #22c55e;
+        }
+        .stats-stale {
+            color: #eab308;
+        }
+        .stats-old {
+            color: #ef4444;
+        }
+        .stats-na {
+            color: #64748b;
+        }
         .inactive {
             color: #94a3b8;
             font-size: 0.9rem;
@@ -356,7 +381,8 @@
         .toast.success { border-left: 4px solid #22c55e; }
         .toast.error { border-left: 4px solid #ef4444; }
         .toast.info { border-left: 4px solid #38bdf8; }
-        .login-modal {
+        .toast.warn { border-left: 4px solid #f59e0b; }
+        .modal {
             display: none;
             position: fixed;
             top: 0;
@@ -368,23 +394,23 @@
             justify-content: center;
             align-items: center;
         }
-        .login-modal.active {
+        .modal.active {
             display: flex;
         }
-        .login-box {
+        .modal-box {
             background: #1e293b;
             border: 1px solid #334155;
             border-radius: 12px;
             padding: 30px;
             width: 90%;
-            max-width: 350px;
+            max-width: 450px;
             text-align: center;
         }
-        .login-box h3 {
+        .modal-box h3 {
             color: #38bdf8;
             margin-bottom: 20px;
         }
-        .login-box input {
+        .modal-box input {
             width: 100%;
             background: #0f172a;
             border: 1px solid #475569;
@@ -394,23 +420,63 @@
             margin-bottom: 15px;
             font-size: 1rem;
         }
-        .login-box input:focus {
+        .modal-box input:focus {
             outline: none;
             border-color: #a855f7;
         }
-        .login-box .btn {
+        .modal-box .btn {
             width: 100%;
             justify-content: center;
+            margin-bottom: 10px;
         }
-        .login-box .cancel-btn {
+        .modal-box .cancel-btn {
             background: transparent;
             color: #94a3b8;
             border: none;
-            margin-top: 10px;
             cursor: pointer;
         }
-        .login-box .cancel-btn:hover {
+        .modal-box .cancel-btn:hover {
             color: #e2e8f0;
+        }
+        .modal-box .info-text {
+            color: #94a3b8;
+            font-size: 0.85rem;
+            margin-bottom: 15px;
+            text-align: left;
+        }
+        .modal-box .key-status {
+            margin-bottom: 15px;
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+        .key-status.saved {
+            background: #064e3b;
+            color: #22c55e;
+            border: 1px solid #22c55e;
+        }
+        .key-status.none {
+            background: #451a03;
+            color: #f59e0b;
+            border: 1px solid #f59e0b;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #334155;
+            border-radius: 3px;
+            margin-top: 10px;
+            overflow: hidden;
+            display: none;
+        }
+        .progress-bar.active {
+            display: block;
+        }
+        .progress-fill {
+            height: 100%;
+            background: #22c55e;
+            width: 0%;
+            transition: width 0.3s;
         }
         @media (max-width: 768px) {
             th, td {
@@ -581,7 +647,13 @@
             </select>
             <button class="btn btn-success admin-only" id="addTargetBtn" onclick="toggleAddForm()">➕ Add Target</button>
             <button class="btn btn-secondary" onclick="exportData()">📥 Export</button>
+            <button class="btn btn-refresh admin-only" id="refreshBtn" onclick="refreshFromFFScouter()">🔄 Refresh Stats</button>
+            <button class="btn btn-settings admin-only" id="settingsBtn" onclick="showSettings()">⚙️ Settings</button>
             <button class="btn btn-danger admin-only" id="clearAllBtn" onclick="clearAll()">🗑️ Clear All</button>
+        </div>
+
+        <div class="progress-bar" id="progressBar">
+            <div class="progress-fill" id="progressFill"></div>
         </div>
 
         <div class="add-form" id="addForm">
@@ -639,6 +711,7 @@
                     <th onclick="sortBy('ff')">Fair Fight <span class="sort-icon" id="sort-ff">↕</span></th>
                     <th onclick="sortBy('stats')">Est Stats <span class="sort-icon" id="sort-stats">↕</span></th>
                     <th onclick="sortBy('inactive')">Inactive <span class="sort-icon" id="sort-inactive">↕</span></th>
+                    <th onclick="sortBy('lastUpdated')">Info <span class="sort-icon" id="sort-lastUpdated">↕</span></th>
                     <th class="admin-only" id="actionsHeader">Actions</th>
                 </tr>
             </thead>
@@ -649,8 +722,9 @@
 
     <div class="toast" id="toast"></div>
 
-    <div class="login-modal" id="loginModal">
-        <div class="login-box">
+    <!-- Login Modal -->
+    <div class="modal" id="loginModal">
+        <div class="modal-box">
             <h3>🔐 Admin Login</h3>
             <input type="password" id="loginPassword" placeholder="Enter admin password...">
             <button class="btn btn-admin" onclick="doLogin()">Login</button>
@@ -658,10 +732,25 @@
         </div>
     </div>
 
+    <!-- Settings Modal -->
+    <div class="modal" id="settingsModal">
+        <div class="modal-box">
+            <h3>⚙️ FFScouter Settings</h3>
+            <div class="info-text">
+                Enter your FFScouter API key to enable stat refreshing. Get your free key at <a href="https://ffscouter.com" target="_blank" style="color:#38bdf8;">ffscouter.com</a>
+            </div>
+            <div class="key-status" id="keyStatus"></div>
+            <input type="text" id="ffscouterKey" placeholder="Paste your 16-char FFScouter API key..." maxlength="16">
+            <button class="btn btn-success" onclick="saveSettings()">💾 Save Key</button>
+            <button class="btn btn-danger" onclick="clearSettings()">🗑️ Clear Key</button>
+            <button class="cancel-btn" onclick="hideSettings()">Cancel</button>
+        </div>
+    </div>
+
     <script>
         // ===================== CONFIG =====================
-        // SHA-256 hash of "Jandre@gmail1" - the actual password is NOT stored in the code
         const ADMIN_HASH = "f6ad9c66039502d0e0cee9b690f5034415b8d54024c8bea0ac5c3f4e3250c383";
+        const FFSCOUTER_API_BASE = "https://ffscouter.com/api/v1";
 
         // ===================== SHA-256 HELPER =====================
         async function sha256(message) {
@@ -674,56 +763,56 @@
 
         // ===================== DEFAULT DATA =====================
         const defaultTargets = [
-            { name: "Alonzo4267", id: "4277486", level: 4, ff: 3, stats: 190, inactive: "15 days ago" },
-            { name: "yulemi", id: "4162677", level: 4, ff: 3, stats: 190, inactive: "16 days ago" },
-            { name: "Psychananaz", id: "4282695", level: 3, ff: 3, stats: 190, inactive: "19 days ago" },
-            { name: "BULLET_T", id: "4243951", level: 5, ff: 3, stats: 190, inactive: "20 days ago" },
-            { name: "AldoRossi77", id: "4291746", level: 4, ff: 3, stats: 190, inactive: "20 days ago" },
-            { name: "samp1223", id: "4218130", level: 4, ff: 3, stats: 190, inactive: "20 days ago" },
-            { name: "Ruffpd3", id: "4281406", level: 5, ff: 3, stats: 190, inactive: "22 days ago" },
-            { name: "788SYR", id: "4257475", level: 3, ff: 3, stats: 190, inactive: "23 days ago" },
-            { name: "jfka", id: "3480693", level: 5, ff: 3, stats: 190, inactive: "23 days ago" },
-            { name: "4271355", id: "4271355", level: 3, ff: 3, stats: 190, inactive: "24 days ago" },
-            { name: "stephieebaddie", id: "4273885", level: 3, ff: 3, stats: 190, inactive: "26 days ago" },
-            { name: "Enzo_Ricci", id: "4282174", level: 3, ff: 3, stats: 190, inactive: "27 days ago" },
-            { name: "Deadguy12345", id: "4200970", level: 4, ff: 3, stats: 190, inactive: "27 days ago" },
-            { name: "Appleciderman17", id: "4260941", level: 4, ff: 3, stats: 190, inactive: "27 days ago" },
-            { name: "Alethdra", id: "4272810", level: 4, ff: 3, stats: 190, inactive: "27 days ago" },
-            { name: "GagLVA", id: "4294028", level: 4, ff: 3, stats: 190, inactive: "27 days ago" },
-            { name: "Mabori", id: "4281414", level: 2, ff: 3, stats: 190, inactive: "29 days ago" },
-            { name: "Excell", id: "3134381", level: 5, ff: 3, stats: 190, inactive: "1 month ago" },
-            { name: "Majo30", id: "4127648", level: 4, ff: 3, stats: 190, inactive: "1 month ago" },
-            { name: "MiniBuddha", id: "3759300", level: 5, ff: 3, stats: 190, inactive: "1 month ago" },
-            { name: "Ghujn321", id: "4284419", level: 1, ff: 3, stats: 190, inactive: "1 month ago" },
-            { name: "CoolestCoconut", id: "4271937", level: 3, ff: 3, stats: 190, inactive: "1 month ago" },
-            { name: "Lexclsv", id: "4262461", level: 5, ff: 3, stats: 190, inactive: "1 month ago" },
-            { name: "Underdiagnosed", id: "4266029", level: 4, ff: 3, stats: 190, inactive: "1 month ago" },
-            { name: "friesandbeef", id: "4018601", level: 3, ff: 3, stats: 190, inactive: "1 month ago" },
-            { name: "ImperialWizzard", id: "4238749", level: 4, ff: 3, stats: 190, inactive: "1 month ago" },
-            { name: "Andreitheone", id: "3740106", level: 4, ff: 3, stats: 190, inactive: "1 month ago" },
-            { name: "Amber313", id: "4255385", level: 5, ff: 3, stats: 190, inactive: "1 month ago" },
-            { name: "pauliuspaul", id: "3172005", level: 5, ff: 3, stats: 190, inactive: "1 month ago" },
-            { name: "jamiris", id: "4239881", level: 3, ff: 3, stats: 190, inactive: "1 month ago" },
-            { name: "Kyermike", id: "3448007", level: 5, ff: 3, stats: 190, inactive: "1 month ago" },
-            { name: "SpiritAirlines", id: "4278115", level: 3, ff: 3, stats: 190, inactive: "1 month ago" },
-            { name: "ABDD", id: "4130455", level: 5, ff: 3, stats: 190, inactive: "1 month ago" },
-            { name: "Shmington", id: "4256860", level: 5, ff: 3, stats: 190, inactive: "1 month ago" },
-            { name: "DreamOfLife", id: "4247219", level: 5, ff: 3, stats: 190, inactive: "1 month ago" },
-            { name: "C4mp3r", id: "4250955", level: 4, ff: 3, stats: 190, inactive: "1 month ago" },
-            { name: "IcyGoat", id: "4271930", level: 3, ff: 3, stats: 190, inactive: "1 month ago" },
-            { name: "Akipchu", id: "2706494", level: 4, ff: 3, stats: 190, inactive: "1 month ago" },
-            { name: "Sosgert", id: "4255291", level: 5, ff: 3, stats: 190, inactive: "1 month ago" },
-            { name: "Tyumnal", id: "4233001", level: 4, ff: 3, stats: 190, inactive: "1 month ago" },
-            { name: "Teachydaddy", id: "4244779", level: 5, ff: 3, stats: 190, inactive: "1 month ago" },
-            { name: "Spookyloco", id: "4192354", level: 5, ff: 3, stats: 190, inactive: "1 month ago" },
-            { name: "Demon7386", id: "4264745", level: 3, ff: 3, stats: 190, inactive: "1 month ago" },
-            { name: "Bockz", id: "3299447", level: 5, ff: 3, stats: 190, inactive: "1 month ago" },
-            { name: "GothamPanda", id: "3113043", level: 4, ff: 3, stats: 190, inactive: "1 month ago" },
-            { name: "TheOnlyZyZy", id: "4233077", level: 5, ff: 3, stats: 190, inactive: "1 month ago" },
-            { name: "penzo78", id: "4180664", level: 3, ff: 3, stats: 190, inactive: "1 month ago" },
-            { name: "Mammon_maximus", id: "4250292", level: 4, ff: 3, stats: 190, inactive: "1 month ago" },
-            { name: "pakalvin", id: "4246937", level: 5, ff: 3, stats: 190, inactive: "1 month ago" },
-            { name: "HeshanZ", id: "3811872", level: 2, ff: 3, stats: 190, inactive: "1 month ago" }
+            { name: "Alonzo4267", id: "4277486", level: 4, ff: 3, stats: 190, inactive: "15 days ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "yulemi", id: "4162677", level: 4, ff: 3, stats: 190, inactive: "16 days ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Psychananaz", id: "4282695", level: 3, ff: 3, stats: 190, inactive: "19 days ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "BULLET_T", id: "4243951", level: 5, ff: 3, stats: 190, inactive: "20 days ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "AldoRossi77", id: "4291746", level: 4, ff: 3, stats: 190, inactive: "20 days ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "samp1223", id: "4218130", level: 4, ff: 3, stats: 190, inactive: "20 days ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Ruffpd3", id: "4281406", level: 5, ff: 3, stats: 190, inactive: "22 days ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "788SYR", id: "4257475", level: 3, ff: 3, stats: 190, inactive: "23 days ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "jfka", id: "3480693", level: 5, ff: 3, stats: 190, inactive: "23 days ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "4271355", id: "4271355", level: 3, ff: 3, stats: 190, inactive: "24 days ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "stephieebaddie", id: "4273885", level: 3, ff: 3, stats: 190, inactive: "26 days ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Enzo_Ricci", id: "4282174", level: 3, ff: 3, stats: 190, inactive: "27 days ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Deadguy12345", id: "4200970", level: 4, ff: 3, stats: 190, inactive: "27 days ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Appleciderman17", id: "4260941", level: 4, ff: 3, stats: 190, inactive: "27 days ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Alethdra", id: "4272810", level: 4, ff: 3, stats: 190, inactive: "27 days ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "GagLVA", id: "4294028", level: 4, ff: 3, stats: 190, inactive: "27 days ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Mabori", id: "4281414", level: 2, ff: 3, stats: 190, inactive: "29 days ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Excell", id: "3134381", level: 5, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Majo30", id: "4127648", level: 4, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "MiniBuddha", id: "3759300", level: 5, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Ghujn321", id: "4284419", level: 1, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "CoolestCoconut", id: "4271937", level: 3, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Lexclsv", id: "4262461", level: 5, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Underdiagnosed", id: "4266029", level: 4, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "friesandbeef", id: "4018601", level: 3, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "ImperialWizzard", id: "4238749", level: 4, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Andreitheone", id: "3740106", level: 4, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Amber313", id: "4255385", level: 5, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "pauliuspaul", id: "3172005", level: 5, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "jamiris", id: "4239881", level: 3, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Kyermike", id: "3448007", level: 5, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "SpiritAirlines", id: "4278115", level: 3, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "ABDD", id: "4130455", level: 5, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Shmington", id: "4256860", level: 5, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "DreamOfLife", id: "4247219", level: 5, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "C4mp3r", id: "4250955", level: 4, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "IcyGoat", id: "4271930", level: 3, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Akipchu", id: "2706494", level: 4, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Sosgert", id: "4255291", level: 5, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Tyumnal", id: "4233001", level: 4, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Teachydaddy", id: "4244779", level: 5, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Spookyloco", id: "4192354", level: 5, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Demon7386", id: "4264745", level: 3, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Bockz", id: "3299447", level: 5, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "GothamPanda", id: "3113043", level: 4, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "TheOnlyZyZy", id: "4233077", level: 5, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "penzo78", id: "4180664", level: 3, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Mammon_maximus", id: "4250292", level: 4, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "pakalvin", id: "4246937", level: 5, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "HeshanZ", id: "3811872", level: 2, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null }
         ];
 
         // ===================== STATE =====================
@@ -732,17 +821,26 @@
         let sortDir = 'asc';
         let editIndex = -1;
         let isAdmin = false;
+        let ffscouterKey = '';
 
         // ===================== INIT =====================
         function init() {
             const saved = localStorage.getItem('tornTargets');
             if (saved) {
                 targets = JSON.parse(saved);
+                // Migrate old data without ffscouter fields
+                targets.forEach(t => {
+                    if (t.ffscouterStats === undefined) t.ffscouterStats = null;
+                    if (t.ffscouterFF === undefined) t.ffscouterFF = null;
+                    if (t.lastUpdated === undefined) t.lastUpdated = null;
+                });
             } else {
-                targets = [...defaultTargets];
+                targets = JSON.parse(JSON.stringify(defaultTargets));
                 saveTargets();
             }
-            // Check admin session
+
+            ffscouterKey = localStorage.getItem('tornFFScouterKey') || '';
+
             const adminSession = localStorage.getItem('tornAdmin');
             if (adminSession === 'true') {
                 isAdmin = true;
@@ -813,6 +911,123 @@
             showToast('Logged out', 'info');
         }
 
+        // ===================== SETTINGS =====================
+        function showSettings() {
+            if (!isAdmin) return;
+            const keyInput = document.getElementById('ffscouterKey');
+            const statusDiv = document.getElementById('keyStatus');
+
+            keyInput.value = ffscouterKey;
+
+            if (ffscouterKey && ffscouterKey.length === 16) {
+                statusDiv.className = 'key-status saved';
+                statusDiv.textContent = '✅ API key saved (' + ffscouterKey.substring(0, 4) + '****' + ffscouterKey.substring(12) + ')';
+            } else {
+                statusDiv.className = 'key-status none';
+                statusDiv.textContent = '⚠️ No API key saved. Get one at ffscouter.com';
+            }
+
+            document.getElementById('settingsModal').classList.add('active');
+            keyInput.focus();
+        }
+
+        function hideSettings() {
+            document.getElementById('settingsModal').classList.remove('active');
+        }
+
+        function saveSettings() {
+            const key = document.getElementById('ffscouterKey').value.trim();
+            if (key.length !== 16) {
+                showToast('API key must be exactly 16 characters!', 'error');
+                return;
+            }
+            ffscouterKey = key;
+            localStorage.setItem('tornFFScouterKey', key);
+            showToast('FFScouter API key saved!', 'success');
+            hideSettings();
+        }
+
+        function clearSettings() {
+            ffscouterKey = '';
+            localStorage.removeItem('tornFFScouterKey');
+            document.getElementById('ffscouterKey').value = '';
+            document.getElementById('keyStatus').className = 'key-status none';
+            document.getElementById('keyStatus').textContent = '⚠️ No API key saved';
+            showToast('API key cleared', 'info');
+        }
+
+        // ===================== FFSCOUTER REFRESH =====================
+        async function refreshFromFFScouter() {
+            if (!isAdmin) return;
+            if (!ffscouterKey || ffscouterKey.length !== 16) {
+                showToast('Please set your FFScouter API key in Settings first!', 'warn');
+                showSettings();
+                return;
+            }
+
+            const progressBar = document.getElementById('progressBar');
+            const progressFill = document.getElementById('progressFill');
+            progressBar.classList.add('active');
+            progressFill.style.width = '10%';
+
+            showToast('Fetching stats from FFScouter...', 'info');
+
+            // FFScouter API: get-stats endpoint
+            // We need to fetch each player individually since the API requires player IDs
+            const total = targets.length;
+            let updated = 0;
+            let failed = 0;
+
+            for (let i = 0; i < total; i++) {
+                const t = targets[i];
+                try {
+                    const url = `${FFSCOUTER_API_BASE}/get-stats?player_id=${t.id}&api_key=${ffscouterKey}`;
+                    const response = await fetch(url, { method: 'GET' });
+
+                    if (!response.ok) {
+                        failed++;
+                        continue;
+                    }
+
+                    const data = await response.json();
+
+                    if (data.success && data.data) {
+                        const stats = data.data;
+                        t.ffscouterStats = stats.bs_estimate || null;
+                        t.ffscouterFF = stats.fair_fight || null;
+                        t.lastUpdated = stats.last_updated ? new Date(stats.last_updated * 1000).toISOString() : null;
+                        updated++;
+                    } else {
+                        failed++;
+                    }
+                } catch (err) {
+                    failed++;
+                }
+
+                // Update progress
+                const pct = ((i + 1) / total) * 100;
+                progressFill.style.width = pct + '%';
+
+                // Rate limit: small delay between requests
+                if (i < total - 1) {
+                    await new Promise(r => setTimeout(r, 300));
+                }
+            }
+
+            progressBar.classList.remove('active');
+            progressFill.style.width = '0%';
+
+            saveTargets();
+            render();
+            updateStats();
+
+            if (updated > 0) {
+                showToast(`Updated ${updated}/${total} targets from FFScouter (${failed} failed)`, 'success');
+            } else {
+                showToast('No stats found. Players may not be in FFScouter database.', 'warn');
+            }
+        }
+
         // ===================== RENDER =====================
         function render() {
             const search = document.getElementById('searchInput').value.toLowerCase();
@@ -832,6 +1047,13 @@
                 if (sortCol === 'inactive') {
                     va = inactiveToDays(va);
                     vb = inactiveToDays(vb);
+                } else if (sortCol === 'lastUpdated') {
+                    va = a.lastUpdated ? new Date(a.lastUpdated).getTime() : 0;
+                    vb = b.lastUpdated ? new Date(b.lastUpdated).getTime() : 0;
+                } else if (sortCol === 'stats') {
+                    // Use ffscouter stats if available, otherwise manual stats
+                    va = a.ffscouterStats !== null ? a.ffscouterStats : a.stats;
+                    vb = b.ffscouterStats !== null ? b.ffscouterStats : b.stats;
                 }
                 if (typeof va === 'string') va = va.toLowerCase();
                 if (typeof vb === 'string') vb = vb.toLowerCase();
@@ -842,13 +1064,45 @@
 
             const tbody = document.getElementById('targetTable');
             if (filtered.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="${isAdmin ? 6 : 5}"><div class="empty-state"><h3>No targets found</h3><p>Try adjusting your filters or add new targets.</p></div></td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="${isAdmin ? 7 : 6}"><div class="empty-state"><h3>No targets found</h3><p>Try adjusting your filters or add new targets.</p></div></td></tr>`;
                 return;
             }
 
             tbody.innerHTML = filtered.map((t, i) => {
                 const realIndex = targets.indexOf(t);
                 const inactiveClass = getInactiveClass(t.inactive);
+
+                // Determine stats display
+                let statsDisplay = '';
+                let statsClass = 'stats-value';
+                if (t.ffscouterStats !== null && t.ffscouterStats !== undefined) {
+                    const daysOld = t.lastUpdated ? (Date.now() - new Date(t.lastUpdated).getTime()) / (1000 * 60 * 60 * 24) : 999;
+                    if (daysOld < 7) {
+                        statsClass = 'stats-value stats-fresh';
+                    } else if (daysOld < 30) {
+                        statsClass = 'stats-value stats-stale';
+                    } else {
+                        statsClass = 'stats-value stats-old';
+                    }
+                    statsDisplay = t.ffscouterStats.toLocaleString();
+                } else {
+                    statsClass = 'stats-value stats-na';
+                    statsDisplay = t.stats ? t.stats.toLocaleString() : 'N/A';
+                }
+
+                // Info column
+                let infoDisplay = '';
+                if (t.lastUpdated) {
+                    const date = new Date(t.lastUpdated);
+                    const daysOld = (Date.now() - date.getTime()) / (1000 * 60 * 60 * 24);
+                    let ageColor = '#22c55e';
+                    if (daysOld > 7) ageColor = '#eab308';
+                    if (daysOld > 30) ageColor = '#ef4444';
+                    infoDisplay = `<span style="color:${ageColor};font-size:0.8rem;">📊 ${date.toLocaleDateString()}</span>`;
+                } else {
+                    infoDisplay = '<span style="color:#64748b;font-size:0.8rem;">—</span>';
+                }
+
                 const actionsCell = isAdmin ? `
                     <td>
                         <div class="actions">
@@ -856,6 +1110,7 @@
                             <button class="btn-del" onclick="deleteTarget(${realIndex})">🗑️</button>
                         </div>
                     </td>` : '';
+
                 return `
                 <tr>
                     <td>
@@ -865,9 +1120,10 @@
                         </div>
                     </td>
                     <td><span class="level-badge">${t.level}</span></td>
-                    <td><span class="ff-badge ff-${t.ff}">${t.ff}</span></td>
-                    <td><span class="stats-value">${t.stats.toLocaleString()}</span></td>
+                    <td><span class="ff-badge ff-${t.ffscouterFF || t.ff}">${t.ffscouterFF || t.ff}</span></td>
+                    <td><span class="${statsClass}">${statsDisplay}</span></td>
                     <td><span class="inactive ${inactiveClass}">${escapeHtml(t.inactive)}</span></td>
+                    <td>${infoDisplay}</td>
                     ${actionsCell}
                 </tr>`;
             }).join('');
@@ -883,7 +1139,7 @@
         function updateStats() {
             document.getElementById('totalTargets').textContent = targets.length;
             const avgLevel = targets.length ? (targets.reduce((s, t) => s + Number(t.level), 0) / targets.length).toFixed(1) : 0;
-            const avgFF = targets.length ? (targets.reduce((s, t) => s + Number(t.ff), 0) / targets.length).toFixed(1) : 0;
+            const avgFF = targets.length ? (targets.reduce((s, t) => s + Number(t.ffscouterFF || t.ff), 0) / targets.length).toFixed(1) : 0;
             const inactive15 = targets.filter(t => inactiveToDays(t.inactive) >= 15).length;
             document.getElementById('avgLevel').textContent = avgLevel;
             document.getElementById('avgFF').textContent = avgFF;
@@ -898,7 +1154,7 @@
                 sortCol = col;
                 sortDir = 'asc';
             }
-            ['name','level','ff','stats','inactive'].forEach(c => {
+            ['name','level','ff','stats','inactive','lastUpdated'].forEach(c => {
                 const el = document.getElementById('sort-' + c);
                 if (el) el.textContent = '↕';
             });
@@ -938,7 +1194,10 @@
             targets.push({
                 name, id, level: level, ff: ff || 3,
                 stats: stats ? Number(stats) : 0,
-                inactive: inactive || 'Unknown'
+                inactive: inactive || 'Unknown',
+                ffscouterStats: null,
+                ffscouterFF: null,
+                lastUpdated: null
             });
             saveTargets();
             render();
@@ -988,7 +1247,10 @@
                 level: level,
                 ff: document.getElementById('editFF').value || 3,
                 stats: Number(document.getElementById('editStats').value) || 0,
-                inactive: document.getElementById('editInactive').value.trim() || 'Unknown'
+                inactive: document.getElementById('editInactive').value.trim() || 'Unknown',
+                ffscouterStats: targets[editIndex].ffscouterStats,
+                ffscouterFF: targets[editIndex].ffscouterFF,
+                lastUpdated: targets[editIndex].lastUpdated
             };
             saveTargets();
             render();
@@ -1080,6 +1342,10 @@
 
         document.getElementById('loginPassword').addEventListener('keydown', e => {
             if (e.key === 'Enter') doLogin();
+        });
+
+        document.getElementById('ffscouterKey').addEventListener('keydown', e => {
+            if (e.key === 'Enter') saveSettings();
         });
 
         document.getElementById('addForm').addEventListener('keydown', e => {
