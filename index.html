@@ -910,7 +910,6 @@
             let totalNoData = 0;
             let totalErrors = 0;
             let totalNotFound = 0;
-            let debugResponse = null;
 
             for (let batchIdx = 0; batchIdx < batches.length; batchIdx++) {
                 const batch = batches[batchIdx];
@@ -942,7 +941,6 @@
 
                     const data = await response.json();
                     console.log('FFScouter raw response:', JSON.stringify(data, null, 2));
-                    debugResponse = data;
 
                     if (Array.isArray(data)) {
                         console.log(`Received ${data.length} player objects`);
@@ -1348,8 +1346,6 @@
 
 
         // ===================== BULK ADD =====================
-        
-
         function showBulkAdd() {
             if (!isAdmin) return;
             document.getElementById('bulkInput').value = '';
