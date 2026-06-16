@@ -728,15 +728,38 @@
 
         // ===================== INIT =====================
         function init() {
-            const saved = localStorage.getItem('tornTargets');
+            console.log('init() starting...');
+            let saved = localStorage.getItem('tornTargets');
+            console.log('localStorage tornTargets:', saved ? 'found (' + saved.length + ' chars)' : 'not found');
+
+            if (!saved) {
+                saved = localStorage.getItem('tornTargetsBackup');
+                console.log('localStorage tornTargetsBackup:', saved ? 'found (' + saved.length + ' chars)' : 'not found');
+            }
+
             if (saved) {
-                targets = JSON.parse(saved);
-                targets.forEach(t => {
-                    if (t.ffscouterStats === undefined) t.ffscouterStats = null;
-                    if (t.ffscouterFF === undefined) t.ffscouterFF = null;
-                    if (t.lastUpdated === undefined) t.lastUpdated = null;
-                });
+                try {
+                    const parsed = JSON.parse(saved);
+                    if (Array.isArray(parsed)) {
+                        targets = parsed;
+                        targets.forEach(t => {
+                            if (t.ffscouterStats === undefined) t.ffscouterStats = null;
+                            if (t.ffscouterFF === undefined) t.ffscouterFF = null;
+                            if (t.lastUpdated === undefined) t.lastUpdated = null;
+                        });
+                        console.log('Loaded ' + targets.length + ' targets from localStorage');
+                    } else {
+                        console.error('Saved data is not an array, restoring defaults');
+                        targets = JSON.parse(JSON.stringify(defaultTargets));
+                        saveTargets();
+                    }
+                } catch (e) {
+                    console.error('Failed to parse saved targets:', e);
+                    targets = JSON.parse(JSON.stringify(defaultTargets));
+                    saveTargets();
+                }
             } else {
+                console.log('No saved data, using defaults');
                 targets = JSON.parse(JSON.stringify(defaultTargets));
                 saveTargets();
             }
@@ -751,10 +774,20 @@
             updateAdminUI();
             render();
             updateStats();
+            console.log('init() complete. Targets:', targets.length);
         }
 
         function saveTargets() {
-            localStorage.setItem('tornTargets', JSON.stringify(targets));
+            try {
+                const data = JSON.stringify(targets);
+                localStorage.setItem('tornTargets', data);
+                // Also save to backup key for extra safety
+                localStorage.setItem('tornTargetsBackup', data);
+                console.log('Saved ' + targets.length + ' targets');
+            } catch (e) {
+                console.error('Failed to save targets:', e);
+                showToast('Failed to save data!', 'error');
+            }
         }
 
         // ===================== ADMIN UI =====================
@@ -1075,7 +1108,7 @@
 
             const tbody = document.getElementById('targetTable');
             if (filtered.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="${isAdmin ? 7 : 6}"><div class="empty-state"><h3>No targets found</h3><p>Try adjusting your filters or add new targets.</p></div></td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="${isAdmin ? 7 : 6}"><div class="empty-state"><h3>No targets found</h3><p>Try adjusting your filters or add new targets.</p><button class="btn btn-success" onclick="restoreFromLocalStorage()" style="margin-top:15px;">🔄 Restore from Backup</button></div></td></tr>`;
                 return;
             }
 
@@ -1597,7 +1630,36 @@
                 showToast('All targets already existed', 'info');
             }
         }
-        // ===================== EVENT LISTENERS =====================
+
+        // ===================== BACKUP / RESTORE =====================
+        function restoreFromLocalStorage() {
+            const saved = localStorage.getItem('tornTargets');
+            if (!saved) {
+                showToast('No backup found in localStorage!', 'warn');
+                return;
+            }
+            try {
+                const parsed = JSON.parse(saved);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    targets = parsed;
+                    targets.forEach(t => {
+                        if (t.ffscouterStats === undefined) t.ffscouterStats = null;
+                        if (t.ffscouterFF === undefined) t.ffscouterFF = null;
+                        if (t.lastUpdated === undefined) t.lastUpdated = null;
+                    });
+                    saveTargets();
+                    render();
+                    updateStats();
+                    showToast('Restored ' + targets.length + ' targets from backup!', 'success');
+                } else {
+                    showToast('Backup is empty!', 'warn');
+                }
+            } catch (e) {
+                showToast('Failed to restore: ' + e.message, 'error');
+            }
+        }
+
+                // ===================== EVENT LISTENERS =====================
         document.getElementById('searchInput').addEventListener('input', render);
         document.getElementById('filterFF').addEventListener('change', render);
         document.getElementById('filterLevel').addEventListener('change', render);
