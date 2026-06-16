@@ -540,6 +540,7 @@
             <button class="btn btn-success admin-only" id="addTargetBtn" onclick="toggleAddForm()">Add Target</button>
             <button class="btn btn-success admin-only" id="bulkAddBtn" onclick="showBulkAdd()" style="background:#10b981;">Bulk Add</button>
             <button class="btn btn-secondary" onclick="exportData()">Export</button>
+            <button class="btn btn-admin admin-only" id="publishBtn" onclick="publishSharedList()" style="background:#ec4899;">📤 Publish</button>
             <button class="btn btn-refresh admin-only" id="refreshBtn" onclick="refreshFromFFScouter()">Refresh Stats</button>
             <button class="btn btn-settings admin-only" id="settingsBtn" onclick="showSettings()">Settings</button>
             <button class="btn btn-danger admin-only" id="clearAllBtn" onclick="clearAll()">Clear All</button>
@@ -642,6 +643,12 @@
             <div class="key-status" id="tornKeyStatus"></div>
             <input type="text" id="tornApiKey" placeholder="Paste your Torn API key..." style="margin-bottom:15px;">
 
+            <div class="info-text" style="margin-bottom:8px;">
+                <strong style="color:#38bdf8;">GitHub Token</strong> — optional, for auto-publishing the shared list. Create at GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic) → repo scope.
+            </div>
+            <div class="key-status" id="githubTokenStatus"></div>
+            <input type="password" id="githubToken" placeholder="ghp_xxxxxxxxxxxx" style="margin-bottom:15px;">
+
             <button class="btn btn-success" onclick="saveSettings()">Save Keys</button>
             <button class="btn btn-danger" onclick="clearSettings()">Clear Keys</button>
             <button class="cancel-btn" onclick="hideSettings()">Cancel</button>
@@ -664,56 +671,46 @@
 
         // ===================== DEFAULT DATA =====================
         const defaultTargets = [
-            { name: "Alonzo4267", id: "4277486", level: 4, ff: 3, stats: 190, inactive: "15 days ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
-            { name: "yulemi", id: "4162677", level: 4, ff: 3, stats: 190, inactive: "16 days ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
-            { name: "Psychananaz", id: "4282695", level: 3, ff: 3, stats: 190, inactive: "19 days ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
-            { name: "BULLET_T", id: "4243951", level: 5, ff: 3, stats: 190, inactive: "20 days ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
-            { name: "AldoRossi77", id: "4291746", level: 4, ff: 3, stats: 190, inactive: "20 days ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
-            { name: "samp1223", id: "4218130", level: 4, ff: 3, stats: 190, inactive: "20 days ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
-            { name: "Ruffpd3", id: "4281406", level: 5, ff: 3, stats: 190, inactive: "22 days ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
-            { name: "788SYR", id: "4257475", level: 3, ff: 3, stats: 190, inactive: "23 days ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
-            { name: "jfka", id: "3480693", level: 5, ff: 3, stats: 190, inactive: "23 days ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
-            { name: "4271355", id: "4271355", level: 3, ff: 3, stats: 190, inactive: "24 days ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
-            { name: "stephieebaddie", id: "4273885", level: 3, ff: 3, stats: 190, inactive: "26 days ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
-            { name: "Enzo_Ricci", id: "4282174", level: 3, ff: 3, stats: 190, inactive: "27 days ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
-            { name: "Deadguy12345", id: "4200970", level: 4, ff: 3, stats: 190, inactive: "27 days ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
-            { name: "Appleciderman17", id: "4260941", level: 4, ff: 3, stats: 190, inactive: "27 days ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
-            { name: "Alethdra", id: "4272810", level: 4, ff: 3, stats: 190, inactive: "27 days ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
-            { name: "GagLVA", id: "4294028", level: 4, ff: 3, stats: 190, inactive: "27 days ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
-            { name: "Mabori", id: "4281414", level: 2, ff: 3, stats: 190, inactive: "29 days ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
-            { name: "Excell", id: "3134381", level: 5, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
-            { name: "Majo30", id: "4127648", level: 4, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
-            { name: "MiniBuddha", id: "3759300", level: 5, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
-            { name: "Ghujn321", id: "4284419", level: 1, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
-            { name: "CoolestCoconut", id: "4271937", level: 3, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
-            { name: "Lexclsv", id: "4262461", level: 5, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
-            { name: "Underdiagnosed", id: "4266029", level: 4, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
-            { name: "friesandbeef", id: "4018601", level: 3, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
-            { name: "ImperialWizzard", id: "4238749", level: 4, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
-            { name: "Andreitheone", id: "3740106", level: 4, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
-            { name: "Amber313", id: "4255385", level: 5, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
-            { name: "pauliuspaul", id: "3172005", level: 5, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
-            { name: "jamiris", id: "4239881", level: 3, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
-            { name: "Kyermike", id: "3448007", level: 5, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
-            { name: "SpiritAirlines", id: "4278115", level: 3, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
-            { name: "ABDD", id: "4130455", level: 5, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
-            { name: "Shmington", id: "4256860", level: 5, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
-            { name: "DreamOfLife", id: "4247219", level: 5, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
-            { name: "C4mp3r", id: "4250955", level: 4, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
-            { name: "IcyGoat", id: "4271930", level: 3, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
-            { name: "Akipchu", id: "2706494", level: 4, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
-            { name: "Sosgert", id: "4255291", level: 5, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
-            { name: "Tyumnal", id: "4233001", level: 4, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
-            { name: "Teachydaddy", id: "4244779", level: 5, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
-            { name: "Spookyloco", id: "4192354", level: 5, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
-            { name: "Demon7386", id: "4264745", level: 3, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
-            { name: "Bockz", id: "3299447", level: 5, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
-            { name: "GothamPanda", id: "3113043", level: 4, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
-            { name: "TheOnlyZyZy", id: "4233077", level: 5, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
-            { name: "penzo78", id: "4180664", level: 3, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
-            { name: "Mammon_maximus", id: "4250292", level: 4, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
-            { name: "pakalvin", id: "4246937", level: 5, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
-            { name: "HeshanZ", id: "3811872", level: 2, ff: 3, stats: 190, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null }
+            { name: "Snaperino", id: "4293325", level: 13, ff: 3.01, stats: 416, inactive: "16 days ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Zhytknhyt", id: "4290474", level: 11, ff: 3.01, stats: 416, inactive: "28 days ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "EdwinT", id: "4224065", level: 11, ff: 3.01, stats: 416, inactive: "14 days ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "MarkusVIczena", id: "4221992", level: 10, ff: 3.01, stats: 416, inactive: "29 days ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "DiegoSandstrom", id: "4218203", level: 11, ff: 3.01, stats: 416, inactive: "29 days ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Vyxenra", id: "4205714", level: 10, ff: 3.01, stats: 416, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Walec", id: "4203482", level: 10, ff: 3.01, stats: 416, inactive: "2 months ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Dredoo", id: "4197494", level: 10, ff: 3.01, stats: 416, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "pimpshrimp", id: "4187692", level: 11, ff: 3.01, stats: 416, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "LittleYa", id: "4180356", level: 12, ff: 3.01, stats: 416, inactive: "2 months ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Shanottt", id: "4178050", level: 11, ff: 3.01, stats: 416, inactive: "2 months ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Sangreye", id: "4172979", level: 13, ff: 3.01, stats: 416, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "-Closure-", id: "4170108", level: 11, ff: 3.01, stats: 416, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "AltarServer", id: "4165965", level: 11, ff: 3.01, stats: 416, inactive: "2 months ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "HughJasshole", id: "4160732", level: 20, ff: 3.01, stats: 416, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Karm1012", id: "4157375", level: 10, ff: 3.01, stats: 416, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "DangerousTits", id: "4151627", level: 10, ff: 3.01, stats: 416, inactive: "3 months ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "H0russ", id: "4148302", level: 10, ff: 3.01, stats: 416, inactive: "14 days ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "ANONIXS", id: "4146408", level: 14, ff: 3.01, stats: 416, inactive: "2 months ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "VaireJam", id: "4129739", level: 10, ff: 3.01, stats: 416, inactive: "2 months ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Alpha_prince", id: "4263292", level: 10, ff: 2.51, stats: 234, inactive: "19 days ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "sunshinesue", id: "4221783", level: 10, ff: 2.51, stats: 234, inactive: "14 days ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "zzumaa", id: "4204281", level: 11, ff: 2.51, stats: 234, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Cel1aaa", id: "4202696", level: 10, ff: 2.51, stats: 234, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Kat325", id: "4167157", level: 10, ff: 2.51, stats: 234, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Coopertha6god", id: "4154704", level: 13, ff: 2.51, stats: 234, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Etals", id: "4146415", level: 16, ff: 2.51, stats: 234, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Boa__", id: "4126628", level: 10, ff: 2.51, stats: 234, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "TeRaic", id: "4119099", level: 11, ff: 2.51, stats: 234, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Nikki2026", id: "4109510", level: 15, ff: 2.51, stats: 234, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Gla55", id: "4105355", level: 15, ff: 2.51, stats: 234, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Chanc3less", id: "4097232", level: 14, ff: 2.51, stats: 234, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "R3dbreast", id: "4028742", level: 12, ff: 2.51, stats: 234, inactive: "2 months ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "MrSarge2099", id: "4002543", level: 12, ff: 2.51, stats: 234, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "MrMarakai", id: "3958729", level: 12, ff: 2.51, stats: 234, inactive: "4 months ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "DrownedRat", id: "3946460", level: 10, ff: 2.51, stats: 234, inactive: "8 months ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "gumauzi", id: "3943121", level: 10, ff: 2.51, stats: 234, inactive: "2 months ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Bootyhed", id: "3937592", level: 12, ff: 2.51, stats: 234, inactive: "6 months ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Lordakira", id: "3925158", level: 14, ff: 2.51, stats: 234, inactive: "4 months ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Nelyria", id: "3923589", level: 11, ff: 2.51, stats: 234, inactive: "6 months ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null }
         ];
 
         // ===================== STATE =====================
@@ -724,48 +721,74 @@
         let isAdmin = false;
         let ffscouterKey = '';
         let tornApiKey = '';
+        let githubToken = '';
+        let githubRepo = 'tornsitetracker/tornsitetracker.github.io'; // default repo
         let parsedBulkTargets = [];
 
         // ===================== INIT =====================
-        function init() {
+        async function init() {
             console.log('init() starting...');
-            let saved = localStorage.getItem('tornTargets');
-            console.log('localStorage tornTargets:', saved ? 'found (' + saved.length + ' chars)' : 'not found');
 
-            if (!saved) {
-                saved = localStorage.getItem('tornTargetsBackup');
-                console.log('localStorage tornTargetsBackup:', saved ? 'found (' + saved.length + ' chars)' : 'not found');
-            }
-
-            if (saved) {
-                try {
-                    const parsed = JSON.parse(saved);
-                    if (Array.isArray(parsed)) {
-                        targets = parsed;
+            // Try to load from shared targets.json first (for the latest shared list)
+            try {
+                const response = await fetch('targets.json?v=' + Date.now(), { cache: 'no-store' });
+                if (response.ok) {
+                    const sharedData = await response.json();
+                    if (Array.isArray(sharedData) && sharedData.length > 0) {
+                        targets = sharedData;
                         targets.forEach(t => {
                             if (t.ffscouterStats === undefined) t.ffscouterStats = null;
                             if (t.ffscouterFF === undefined) t.ffscouterFF = null;
                             if (t.lastUpdated === undefined) t.lastUpdated = null;
                         });
-                        console.log('Loaded ' + targets.length + ' targets from localStorage');
+                        console.log('Loaded ' + targets.length + ' targets from shared targets.json');
+                        // Save to localStorage so it works offline too
+                        saveTargets();
                     } else {
-                        console.error('Saved data is not an array, restoring defaults');
+                        throw new Error('Invalid shared data');
+                    }
+                } else {
+                    throw new Error('targets.json not found');
+                }
+            } catch (e) {
+                console.log('Could not load shared targets.json:', e.message);
+                // Fall back to localStorage
+                let saved = localStorage.getItem('tornTargets');
+                if (!saved) {
+                    saved = localStorage.getItem('tornTargetsBackup');
+                }
+
+                if (saved) {
+                    try {
+                        const parsed = JSON.parse(saved);
+                        if (Array.isArray(parsed)) {
+                            targets = parsed;
+                            targets.forEach(t => {
+                                if (t.ffscouterStats === undefined) t.ffscouterStats = null;
+                                if (t.ffscouterFF === undefined) t.ffscouterFF = null;
+                                if (t.lastUpdated === undefined) t.lastUpdated = null;
+                            });
+                            console.log('Loaded ' + targets.length + ' targets from localStorage');
+                        } else {
+                            targets = JSON.parse(JSON.stringify(defaultTargets));
+                            saveTargets();
+                        }
+                    } catch (err) {
+                        console.error('Failed to parse saved targets:', err);
                         targets = JSON.parse(JSON.stringify(defaultTargets));
                         saveTargets();
                     }
-                } catch (e) {
-                    console.error('Failed to parse saved targets:', e);
+                } else {
+                    console.log('No saved data, using defaults');
                     targets = JSON.parse(JSON.stringify(defaultTargets));
                     saveTargets();
                 }
-            } else {
-                console.log('No saved data, using defaults');
-                targets = JSON.parse(JSON.stringify(defaultTargets));
-                saveTargets();
             }
 
             ffscouterKey = localStorage.getItem('tornFFScouterKey') || '';
             tornApiKey = localStorage.getItem('tornApiKey') || '';
+            githubToken = localStorage.getItem('githubToken') || '';
+            githubRepo = localStorage.getItem('githubRepo') || githubRepo;
 
             const adminSession = localStorage.getItem('tornAdmin');
             if (adminSession === 'true') {
@@ -874,6 +897,18 @@
                 tornStatusDiv.textContent = 'No Torn API key saved (optional)';
             }
 
+            const githubInput = document.getElementById('githubToken');
+            const githubStatusDiv = document.getElementById('githubTokenStatus');
+            githubInput.value = githubToken;
+
+            if (githubToken && githubToken.length > 30) {
+                githubStatusDiv.className = 'key-status saved';
+                githubStatusDiv.textContent = 'GitHub token saved (' + githubToken.substring(0, 4) + '****' + githubToken.substring(githubToken.length-4) + ')';
+            } else {
+                githubStatusDiv.className = 'key-status none';
+                githubStatusDiv.textContent = 'No GitHub token saved (optional)';
+            }
+
             document.getElementById('settingsModal').classList.add('active');
             keyInput.focus();
         }
@@ -885,6 +920,7 @@
         function saveSettings() {
             const key = document.getElementById('ffscouterKey').value.trim();
             const tornKey = document.getElementById('tornApiKey').value.trim();
+            const ghToken = document.getElementById('githubToken').value.trim();
 
             if (key && key.length !== 16) {
                 showToast('FFScouter key must be exactly 16 characters!', 'error');
@@ -898,6 +934,13 @@
                 tornApiKey = tornKey;
                 localStorage.setItem('tornApiKey', tornKey);
             }
+            if (ghToken) {
+                if (!ghToken.startsWith('ghp_') && !ghToken.startsWith('github_pat_')) {
+                    showToast('GitHub token should start with ghp_ or github_pat_', 'warn');
+                }
+                githubToken = ghToken;
+                localStorage.setItem('githubToken', ghToken);
+            }
             showToast('Settings saved!', 'success');
             hideSettings();
         }
@@ -905,14 +948,19 @@
         function clearSettings() {
             ffscouterKey = '';
             tornApiKey = '';
+            githubToken = '';
             localStorage.removeItem('tornFFScouterKey');
             localStorage.removeItem('tornApiKey');
+            localStorage.removeItem('githubToken');
             document.getElementById('ffscouterKey').value = '';
             document.getElementById('tornApiKey').value = '';
+            document.getElementById('githubToken').value = '';
             document.getElementById('keyStatus').className = 'key-status none';
             document.getElementById('keyStatus').textContent = 'No FFScouter key saved';
             document.getElementById('tornKeyStatus').className = 'key-status none';
             document.getElementById('tornKeyStatus').textContent = 'No Torn API key saved';
+            document.getElementById('githubTokenStatus').className = 'key-status none';
+            document.getElementById('githubTokenStatus').textContent = 'No GitHub token saved';
             showToast('All API keys cleared', 'info');
         }
 
@@ -1621,9 +1669,9 @@
             hideBulkAdd();
 
             if (added > 0 && updated > 0) {
-                showToast('Added ' + added + ' new, updated ' + updated + ' existing', 'success');
+                showToast('Added ' + added + ' new, updated ' + updated + ' existing. Click 📤 Publish to share!', 'success');
             } else if (added > 0) {
-                showToast('Added ' + added + ' new targets', 'success');
+                showToast('Added ' + added + ' new targets. Click 📤 Publish to share with everyone!', 'success');
             } else if (updated > 0) {
                 showToast('Updated ' + updated + ' existing targets', 'success');
             } else {
@@ -1631,7 +1679,79 @@
             }
         }
 
-        // ===================== BACKUP / RESTORE =====================
+
+        // ===================== SHARED LIST PUBLISH =====================
+        async function publishSharedList() {
+            if (!isAdmin) return;
+            if (targets.length === 0) {
+                showToast('No targets to publish!', 'warn');
+                return;
+            }
+
+            if (!githubToken) {
+                showToast('Please set your GitHub token in Settings first!', 'warn');
+                showSettings();
+                return;
+            }
+
+            showToast('Publishing to GitHub...', 'info');
+
+            try {
+                // First, get the current file to get its SHA (needed for update)
+                const getUrl = 'https://api.github.com/repos/' + githubRepo + '/contents/targets.json';
+                const getResponse = await fetch(getUrl, {
+                    headers: {
+                        'Authorization': 'token ' + githubToken,
+                        'Accept': 'application/vnd.github.v3+json'
+                    }
+                });
+
+                let sha = null;
+                if (getResponse.ok) {
+                    const fileData = await getResponse.json();
+                    sha = fileData.sha;
+                }
+
+                // Prepare the content
+                const jsonData = JSON.stringify(targets, null, 2);
+                const content = btoa(unescape(encodeURIComponent(jsonData))); // Base64 encode
+
+                // Commit the update
+                const putUrl = 'https://api.github.com/repos/' + githubRepo + '/contents/targets.json';
+                const putResponse = await fetch(putUrl, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': 'token ' + githubToken,
+                        'Accept': 'application/vnd.github.v3+json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: 'Update targets list - ' + targets.length + ' targets',
+                        content: content,
+                        sha: sha
+                    })
+                });
+
+                if (putResponse.ok) {
+                    showToast('Published! Wait 1-2 minutes for GitHub Pages to update.', 'success');
+                } else {
+                    const error = await putResponse.json();
+                    console.error('GitHub API error:', error);
+                    if (putResponse.status === 401) {
+                        showToast('GitHub token invalid or expired. Check Settings.', 'error');
+                    } else if (putResponse.status === 404) {
+                        showToast('Repo not found. Check the repo name in the code.', 'error');
+                    } else {
+                        showToast('GitHub error: ' + (error.message || putResponse.status), 'error');
+                    }
+                }
+            } catch (err) {
+                console.error('Publish error:', err);
+                showToast('Failed to publish: ' + err.message, 'error');
+            }
+        }
+
+                // ===================== BACKUP / RESTORE =====================
         function restoreFromLocalStorage() {
             const saved = localStorage.getItem('tornTargets');
             if (!saved) {
