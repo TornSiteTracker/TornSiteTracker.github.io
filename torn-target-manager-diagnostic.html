@@ -1,0 +1,1941 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Torn Target Manager</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 {
+            text-align: center;
+            color: #38bdf8;
+            margin-bottom: 8px;
+            font-size: 2.2rem;
+            text-shadow: 0 0 20px rgba(56, 189, 248, 0.3);
+        }
+        .subtitle {
+            text-align: center;
+            color: #94a3b8;
+            margin-bottom: 25px;
+            font-size: 0.95rem;
+        }
+        .top-bar {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 10px;
+            gap: 10px;
+        }
+        .admin-badge {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            background: #1e293b;
+            border: 1px solid #22c55e;
+            color: #22c55e;
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .admin-badge.visible { display: inline-flex; }
+        .stats-bar {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+        .stat-box {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 12px 24px;
+            text-align: center;
+            min-width: 120px;
+        }
+        .stat-box .number {
+            font-size: 1.6rem;
+            font-weight: bold;
+            color: #38bdf8;
+        }
+        .stat-box .label {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .controls {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+        }
+        .controls input, .controls select {
+            background: #1e293b;
+            border: 1px solid #475569;
+            color: #e2e8f0;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .controls input:focus, .controls select:focus { border-color: #38bdf8; }
+        .controls input[type="text"] { min-width: 220px; }
+        .btn {
+            background: #0ea5e9;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 600;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn:hover { background: #0284c7; transform: translateY(-1px); }
+        .btn-danger { background: #ef4444; }
+        .btn-danger:hover { background: #dc2626; }
+        .btn-success { background: #22c55e; }
+        .btn-success:hover { background: #16a34a; }
+        .btn-secondary { background: #475569; }
+        .btn-secondary:hover { background: #334155; }
+        .btn-admin { background: #a855f7; }
+        .btn-admin:hover { background: #9333ea; }
+        .btn-logout { background: #64748b; }
+        .btn-logout:hover { background: #475569; }
+        .btn-refresh { background: #f59e0b; }
+        .btn-refresh:hover { background: #d97706; }
+        .btn-settings { background: #6366f1; }
+        .btn-settings:hover { background: #4f46e5; }
+        .admin-only { display: none !important; }
+        .admin-only.visible { display: inline-flex !important; }
+        .add-form {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+            display: none;
+        }
+        .add-form.active { display: block; }
+        .add-form h3 {
+            color: #38bdf8;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
+        .form-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        .form-row input, .form-row select {
+            flex: 1;
+            min-width: 140px;
+            background: #0f172a;
+            border: 1px solid #475569;
+            color: #e2e8f0;
+            padding: 10px 12px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+        .form-row input::placeholder { color: #64748b; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #1e293b;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #334155;
+        }
+        thead { background: #0f172a; }
+        th {
+            padding: 14px 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #94a3b8;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+            white-space: nowrap;
+        }
+        th:hover { color: #38bdf8; }
+        th .sort-icon {
+            margin-left: 4px;
+            opacity: 0.5;
+            font-size: 0.75rem;
+        }
+        th.sorted .sort-icon {
+            opacity: 1;
+            color: #38bdf8;
+        }
+        td {
+            padding: 12px;
+            border-top: 1px solid #334155;
+            font-size: 0.9rem;
+        }
+        tr:hover { background: #252f47; }
+        .name-cell {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .username {
+            font-weight: 600;
+            color: #e2e8f0;
+        }
+        .player-id {
+            font-size: 0.8rem;
+            color: #64748b;
+        }
+        .player-id a {
+            color: #38bdf8;
+            text-decoration: none;
+        }
+        .player-id a:hover { text-decoration: underline; }
+        .level-badge {
+            display: inline-block;
+            background: #0f172a;
+            border: 1px solid #475569;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #e2e8f0;
+        }
+        .ff-badge {
+            display: inline-block;
+            background: #0f172a;
+            border: 1px solid #475569;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .ff-1 { color: #ef4444; border-color: #ef4444; }
+        .ff-2 { color: #f97316; border-color: #f97316; }
+        .ff-3 { color: #eab308; border-color: #eab308; }
+        .ff-4 { color: #22c55e; border-color: #22c55e; }
+        .ff-5 { color: #38bdf8; border-color: #38bdf8; }
+        .stats-value {
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+            color: #a78bfa;
+        }
+        .stats-fresh { color: #22c55e; }
+        .stats-stale { color: #eab308; }
+        .stats-old { color: #ef4444; }
+        .stats-na { color: #64748b; }
+        .inactive {
+            color: #94a3b8;
+            font-size: 0.9rem;
+        }
+        .inactive.warn { color: #f97316; }
+        .inactive.danger { color: #ef4444; font-weight: 600; }
+        .actions {
+            display: flex;
+            gap: 6px;
+        }
+        .actions button {
+            background: #334155;
+            border: none;
+            color: #e2e8f0;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: background 0.2s;
+        }
+        .actions button:hover { background: #475569; }
+        .actions .btn-del:hover { background: #ef4444; color: white; }
+        .actions .btn-edit:hover { background: #0ea5e9; color: white; }
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #64748b;
+        }
+        .empty-state h3 { color: #94a3b8; margin-bottom: 10px; }
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #1e293b;
+            border: 1px solid #334155;
+            color: #e2e8f0;
+            padding: 14px 20px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        .toast.success { border-left: 4px solid #22c55e; }
+        .toast.error { border-left: 4px solid #ef4444; }
+        .toast.info { border-left: 4px solid #38bdf8; }
+        .toast.warn { border-left: 4px solid #f59e0b; }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal.active { display: flex; }
+        .modal-box {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 30px;
+            width: 90%;
+            max-width: 450px;
+            text-align: center;
+        }
+        .modal-box h3 { color: #38bdf8; margin-bottom: 20px; }
+        .modal-box input {
+            width: 100%;
+            background: #0f172a;
+            border: 1px solid #475569;
+            color: #e2e8f0;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 1rem;
+        }
+        .modal-box input:focus { outline: none; border-color: #a855f7; }
+        .modal-box .btn {
+            width: 100%;
+            justify-content: center;
+            margin-bottom: 10px;
+        }
+        .modal-box .cancel-btn {
+            background: transparent;
+            color: #94a3b8;
+            border: none;
+            cursor: pointer;
+        }
+        .modal-box .cancel-btn:hover { color: #e2e8f0; }
+        .modal-box .info-text {
+            color: #94a3b8;
+            font-size: 0.85rem;
+            margin-bottom: 15px;
+            text-align: left;
+        }
+        .modal-box .key-status {
+            margin-bottom: 15px;
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+        .modal-box .key-status.saved {
+            background: #064e3b;
+            color: #22c55e;
+            border: 1px solid #22c55e;
+        }
+        .modal-box .key-status.none {
+            background: #451a03;
+            color: #f59e0b;
+            border: 1px solid #f59e0b;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #334155;
+            border-radius: 3px;
+            margin-top: 10px;
+            overflow: hidden;
+            display: none;
+        }
+        .progress-bar.active { display: block; }
+        .progress-fill {
+            height: 100%;
+            background: #22c55e;
+            width: 0%;
+            transition: width 0.3s;
+        }
+        @media (max-width: 768px) {
+            th, td { padding: 8px 6px; font-size: 0.8rem; }
+            .controls { flex-direction: column; align-items: stretch; }
+            .controls input, .controls select, .controls button { width: 100%; }
+            .form-row { flex-direction: column; }
+            .form-row input, .form-row select { width: 100%; }
+            h1 { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <div id="debugPanel" style="position:fixed; top:0; left:0; width:100%; background:#ef4444; color:white; z-index:9999; padding:10px; font-family:monospace; font-size:14px; display:none;">
+        <strong>DEBUG:</strong> <span id="debugMsg">Loading...</span>
+        <button onclick="document.getElementById('debugPanel').style.display='none'" style="float:right; background:white; color:#ef4444; border:none; padding:2px 10px; cursor:pointer;">X</button>
+    </div>
+
+    <div class="container">
+        <div class="top-bar">
+            <div class="admin-badge" id="adminBadge">
+                Admin Mode
+                <button class="btn btn-logout" style="padding:4px 10px; font-size:0.75rem;" onclick="logout()">Logout</button>
+            </div>
+            <button class="btn btn-admin" id="loginBtn" onclick="showLogin()">Admin Login</button>
+        </div>
+
+        <h1>Torn Target Manager</h1>
+        <p class="subtitle">Track, sort, and manage your attack targets</p>
+
+        <div class="stats-bar">
+            <div class="stat-box">
+                <div class="number" id="totalTargets">0</div>
+                <div class="label">Targets</div>
+            </div>
+            <div class="stat-box">
+                <div class="number" id="avgLevel">0</div>
+                <div class="label">Avg Level</div>
+            </div>
+            <div class="stat-box">
+                <div class="number" id="avgFF">0</div>
+                <div class="label">Avg FF</div>
+            </div>
+            <div class="stat-box">
+                <div class="number" id="inactiveCount">0</div>
+                <div class="label">Inactive 15d+</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <input type="text" id="searchInput" placeholder="Search name or ID...">
+            <select id="filterFF">
+                <option value="">All FF</option>
+                <option value="1">FF 1</option>
+                <option value="2">FF 2</option>
+                <option value="3">FF 3</option>
+                <option value="4">FF 4</option>
+                <option value="5">FF 5</option>
+            </select>
+            <select id="filterLevel">
+                <option value="">All Levels</option>
+                <option value="1">Level 1</option>
+                <option value="2">Level 2</option>
+                <option value="3">Level 3</option>
+                <option value="4">Level 4</option>
+                <option value="5">Level 5</option>
+                <option value="6">Level 6</option>
+                <option value="7">Level 7</option>
+                <option value="8">Level 8</option>
+                <option value="9">Level 9</option>
+                <option value="10">Level 10</option>
+                <option value="11">Level 11</option>
+                <option value="12">Level 12</option>
+                <option value="13">Level 13</option>
+                <option value="14">Level 14</option>
+                <option value="15">Level 15</option>
+                <option value="16">Level 16</option>
+                <option value="17">Level 17</option>
+                <option value="18">Level 18</option>
+                <option value="19">Level 19</option>
+                <option value="20">Level 20</option>
+                <option value="21">Level 21</option>
+                <option value="22">Level 22</option>
+                <option value="23">Level 23</option>
+                <option value="24">Level 24</option>
+                <option value="25">Level 25</option>
+                <option value="26">Level 26</option>
+                <option value="27">Level 27</option>
+                <option value="28">Level 28</option>
+                <option value="29">Level 29</option>
+                <option value="30">Level 30</option>
+                <option value="31">Level 31</option>
+                <option value="32">Level 32</option>
+                <option value="33">Level 33</option>
+                <option value="34">Level 34</option>
+                <option value="35">Level 35</option>
+                <option value="36">Level 36</option>
+                <option value="37">Level 37</option>
+                <option value="38">Level 38</option>
+                <option value="39">Level 39</option>
+                <option value="40">Level 40</option>
+                <option value="41">Level 41</option>
+                <option value="42">Level 42</option>
+                <option value="43">Level 43</option>
+                <option value="44">Level 44</option>
+                <option value="45">Level 45</option>
+                <option value="46">Level 46</option>
+                <option value="47">Level 47</option>
+                <option value="48">Level 48</option>
+                <option value="49">Level 49</option>
+                <option value="50">Level 50</option>
+                <option value="51">Level 51</option>
+                <option value="52">Level 52</option>
+                <option value="53">Level 53</option>
+                <option value="54">Level 54</option>
+                <option value="55">Level 55</option>
+                <option value="56">Level 56</option>
+                <option value="57">Level 57</option>
+                <option value="58">Level 58</option>
+                <option value="59">Level 59</option>
+                <option value="60">Level 60</option>
+                <option value="61">Level 61</option>
+                <option value="62">Level 62</option>
+                <option value="63">Level 63</option>
+                <option value="64">Level 64</option>
+                <option value="65">Level 65</option>
+                <option value="66">Level 66</option>
+                <option value="67">Level 67</option>
+                <option value="68">Level 68</option>
+                <option value="69">Level 69</option>
+                <option value="70">Level 70</option>
+                <option value="71">Level 71</option>
+                <option value="72">Level 72</option>
+                <option value="73">Level 73</option>
+                <option value="74">Level 74</option>
+                <option value="75">Level 75</option>
+                <option value="76">Level 76</option>
+                <option value="77">Level 77</option>
+                <option value="78">Level 78</option>
+                <option value="79">Level 79</option>
+                <option value="80">Level 80</option>
+                <option value="81">Level 81</option>
+                <option value="82">Level 82</option>
+                <option value="83">Level 83</option>
+                <option value="84">Level 84</option>
+                <option value="85">Level 85</option>
+                <option value="86">Level 86</option>
+                <option value="87">Level 87</option>
+                <option value="88">Level 88</option>
+                <option value="89">Level 89</option>
+                <option value="90">Level 90</option>
+                <option value="91">Level 91</option>
+                <option value="92">Level 92</option>
+                <option value="93">Level 93</option>
+                <option value="94">Level 94</option>
+                <option value="95">Level 95</option>
+                <option value="96">Level 96</option>
+                <option value="97">Level 97</option>
+                <option value="98">Level 98</option>
+                <option value="99">Level 99</option>
+                <option value="100">Level 100</option>
+            </select>
+            <button class="btn btn-success admin-only" id="addTargetBtn" onclick="toggleAddForm()">Add Target</button>
+            <button class="btn btn-success admin-only" id="bulkAddBtn" onclick="showBulkAdd()" style="background:#10b981;">Bulk Add</button>
+            <button class="btn btn-secondary" onclick="exportData()">Export</button>
+            <button class="btn btn-admin admin-only" id="publishBtn" onclick="publishSharedList()" style="background:#ec4899;">📤 Publish</button>
+            <button class="btn btn-admin admin-only" onclick="loadDefaults()" style="background:#6366f1;">🔄 Defaults</button>
+            <button class="btn btn-refresh admin-only" id="refreshBtn" onclick="refreshFromFFScouter()">Refresh Stats</button>
+            <button class="btn btn-settings admin-only" id="settingsBtn" onclick="showSettings()">Settings</button>
+            <button class="btn btn-danger admin-only" id="clearAllBtn" onclick="clearAll()">Clear All</button>
+        </div>
+
+        <div class="progress-bar" id="progressBar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+
+        <div class="add-form" id="addForm">
+            <h3>Add New Target</h3>
+            <div class="form-row">
+                <input type="text" id="newName" placeholder="Username">
+                <input type="number" id="newId" placeholder="Player ID">
+                <input type="number" id="newLevel" placeholder="Level (1-100)" min="1" max="100">
+                <select id="newFF">
+                    <option value="">FF</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                </select>
+                <input type="number" id="newStats" placeholder="Est Battle Stats" min="0">
+                <input type="text" id="newInactive" placeholder="Inactive (e.g. 15 days ago)">
+            </div>
+            <div style="display:flex; gap:10px;">
+                <button class="btn btn-success" onclick="addTarget()">Save Target</button>
+                <button class="btn btn-secondary" onclick="toggleAddForm()">Cancel</button>
+            </div>
+        </div>
+
+        <div class="add-form" id="editForm">
+            <h3>Edit Target</h3>
+            <div class="form-row">
+                <input type="hidden" id="editIndex">
+                <input type="text" id="editName" placeholder="Username">
+                <input type="number" id="editId" placeholder="Player ID">
+                <input type="number" id="editLevel" placeholder="Level (1-100)" min="1" max="100">
+                <select id="editFF">
+                    <option value="">FF</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                </select>
+                <input type="number" id="editStats" placeholder="Est Battle Stats" min="0">
+                <input type="text" id="editInactive" placeholder="Inactive (e.g. 15 days ago)">
+            </div>
+            <div style="display:flex; gap:10px;">
+                <button class="btn btn-success" onclick="saveEdit()">Update</button>
+                <button class="btn btn-secondary" onclick="closeEditForm()">Cancel</button>
+            </div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th onclick="sortBy('name')">Player <span class="sort-icon" id="sort-name">&#x2195;</span></th>
+                    <th onclick="sortBy('level')">Level <span class="sort-icon" id="sort-level">&#x2195;</span></th>
+                    <th onclick="sortBy('ff')">Fair Fight <span class="sort-icon" id="sort-ff">&#x2195;</span></th>
+                    <th onclick="sortBy('stats')">Est Stats <span class="sort-icon" id="sort-stats">&#x2195;</span></th>
+                    <th onclick="sortBy('inactive')">Inactive <span class="sort-icon" id="sort-inactive">&#x2195;</span></th>
+                    <th onclick="sortBy('lastUpdated')">Info <span class="sort-icon" id="sort-lastUpdated">&#x2195;</span></th>
+                    <th class="admin-only" id="actionsHeader">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="targetTable">
+            </tbody>
+        </table>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <!-- Login Modal -->
+    <div class="modal" id="loginModal">
+        <div class="modal-box">
+            <h3>Admin Login</h3>
+            <input type="password" id="loginPassword" placeholder="Enter admin password...">
+            <button class="btn btn-admin" onclick="doLogin()">Login</button>
+            <button class="cancel-btn" onclick="hideLogin()">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal" id="settingsModal">
+        <div class="modal-box" style="max-width:500px;">
+            <h3>API Settings</h3>
+
+            <div class="info-text" style="margin-bottom:8px;">
+                <strong style="color:#38bdf8;">FFScouter API Key</strong> — for battle stats & fair fight. Get your key at <a href="https://ffscouter.com" target="_blank" style="color:#38bdf8;">ffscouter.com</a>
+            </div>
+            <div class="key-status" id="keyStatus"></div>
+            <input type="text" id="ffscouterKey" placeholder="Paste your 16-char FFScouter API key..." maxlength="16" style="margin-bottom:15px;">
+
+            <div class="info-text" style="margin-bottom:8px;">
+                <strong style="color:#38bdf8;">Torn API Key</strong> — optional, for auto-fetching names/levels when adding targets. Create a Public Access key in Torn Settings → API Keys.
+            </div>
+            <div class="key-status" id="tornKeyStatus"></div>
+            <input type="text" id="tornApiKey" placeholder="Paste your Torn API key..." style="margin-bottom:15px;">
+
+            <div class="info-text" style="margin-bottom:8px;">
+                <strong style="color:#38bdf8;">GitHub Token</strong> — optional, for auto-publishing the shared list. Create at GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic) → repo scope.
+            </div>
+            <div class="key-status" id="githubTokenStatus"></div>
+            <input type="password" id="githubToken" placeholder="ghp_xxxxxxxxxxxx or github_pat_..." style="margin-bottom:15px;">
+
+            <div class="info-text" style="margin-bottom:8px;">
+                <strong style="color:#38bdf8;">GitHub Repo</strong> — format: username/repo-name (e.g., tornsitetracker/tornsitetracker.github.io)
+            </div>
+            <input type="text" id="githubRepo" placeholder="username/repo-name" style="margin-bottom:15px;">
+
+            <button class="btn btn-success" onclick="saveSettings()">Save Keys</button>
+            <button class="btn btn-danger" onclick="clearSettings()">Clear Keys</button>
+            <button class="cancel-btn" onclick="hideSettings()">Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        // IMMEDIATE DEBUG - runs before anything else
+        (function() {
+            var panel = document.getElementById('debugPanel');
+            var msg = document.getElementById('debugMsg');
+            panel.style.display = 'block';
+            msg.textContent = 'Script parsed OK. defaultTargets count: ' + (typeof defaultTargets !== 'undefined' ? defaultTargets.length : 'UNDEFINED');
+        })();
+    
+        // ===================== CONFIG =====================
+        const ADMIN_HASH = "f6ad9c66039502d0e0cee9b690f5034415b8d54024c8bea0ac5c3f4e3250c383";
+        const FFSCOUTER_API_BASE = "https://ffscouter.com/api/v1";
+
+        // ===================== SHA-256 HELPER =====================
+        async function sha256(message) {
+            const msgBuffer = new TextEncoder().encode(message);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            return hashHex;
+        }
+
+        // ===================== DEFAULT DATA =====================
+        const defaultTargets = [
+            { name: "Snaperino", id: "4293325", level: 13, ff: 3.01, stats: 416, inactive: "16 days ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Zhytknhyt", id: "4290474", level: 11, ff: 3.01, stats: 416, inactive: "28 days ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "EdwinT", id: "4224065", level: 11, ff: 3.01, stats: 416, inactive: "14 days ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "MarkusVIczena", id: "4221992", level: 10, ff: 3.01, stats: 416, inactive: "29 days ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "DiegoSandstrom", id: "4218203", level: 11, ff: 3.01, stats: 416, inactive: "29 days ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Vyxenra", id: "4205714", level: 10, ff: 3.01, stats: 416, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Walec", id: "4203482", level: 10, ff: 3.01, stats: 416, inactive: "2 months ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Dredoo", id: "4197494", level: 10, ff: 3.01, stats: 416, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "pimpshrimp", id: "4187692", level: 11, ff: 3.01, stats: 416, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "LittleYa", id: "4180356", level: 12, ff: 3.01, stats: 416, inactive: "2 months ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Shanottt", id: "4178050", level: 11, ff: 3.01, stats: 416, inactive: "2 months ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Sangreye", id: "4172979", level: 13, ff: 3.01, stats: 416, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "-Closure-", id: "4170108", level: 11, ff: 3.01, stats: 416, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "AltarServer", id: "4165965", level: 11, ff: 3.01, stats: 416, inactive: "2 months ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "HughJasshole", id: "4160732", level: 20, ff: 3.01, stats: 416, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Karm1012", id: "4157375", level: 10, ff: 3.01, stats: 416, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "DangerousTits", id: "4151627", level: 10, ff: 3.01, stats: 416, inactive: "3 months ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "H0russ", id: "4148302", level: 10, ff: 3.01, stats: 416, inactive: "14 days ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "ANONIXS", id: "4146408", level: 14, ff: 3.01, stats: 416, inactive: "2 months ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "VaireJam", id: "4129739", level: 10, ff: 3.01, stats: 416, inactive: "2 months ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Alpha_prince", id: "4263292", level: 10, ff: 2.51, stats: 234, inactive: "19 days ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "sunshinesue", id: "4221783", level: 10, ff: 2.51, stats: 234, inactive: "14 days ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "zzumaa", id: "4204281", level: 11, ff: 2.51, stats: 234, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Cel1aaa", id: "4202696", level: 10, ff: 2.51, stats: 234, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Kat325", id: "4167157", level: 10, ff: 2.51, stats: 234, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Coopertha6god", id: "4154704", level: 13, ff: 2.51, stats: 234, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Etals", id: "4146415", level: 16, ff: 2.51, stats: 234, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Boa__", id: "4126628", level: 10, ff: 2.51, stats: 234, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "TeRaic", id: "4119099", level: 11, ff: 2.51, stats: 234, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Nikki2026", id: "4109510", level: 15, ff: 2.51, stats: 234, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Gla55", id: "4105355", level: 15, ff: 2.51, stats: 234, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Chanc3less", id: "4097232", level: 14, ff: 2.51, stats: 234, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "R3dbreast", id: "4028742", level: 12, ff: 2.51, stats: 234, inactive: "2 months ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "MrSarge2099", id: "4002543", level: 12, ff: 2.51, stats: 234, inactive: "1 month ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "MrMarakai", id: "3958729", level: 12, ff: 2.51, stats: 234, inactive: "4 months ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "DrownedRat", id: "3946460", level: 10, ff: 2.51, stats: 234, inactive: "8 months ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "gumauzi", id: "3943121", level: 10, ff: 2.51, stats: 234, inactive: "2 months ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Bootyhed", id: "3937592", level: 12, ff: 2.51, stats: 234, inactive: "6 months ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Lordakira", id: "3925158", level: 14, ff: 2.51, stats: 234, inactive: "4 months ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null },
+            { name: "Nelyria", id: "3923589", level: 11, ff: 2.51, stats: 234, inactive: "6 months ago", ffscouterStats: null, ffscouterFF: null, lastUpdated: null }
+        ];
+
+        // ===================== STATE =====================
+        let targets = [];
+        let sortCol = 'inactive';
+        let sortDir = 'asc';
+        let editIndex = -1;
+        let isAdmin = false;
+        let ffscouterKey = '';
+        let tornApiKey = '';
+        let githubToken = '';
+        let githubRepo = 'tornsitetracker/tornsitetracker.github.io'; // default repo
+        let parsedBulkTargets = [];
+
+        // ===================== INIT =====================
+        async function init() {
+            console.log('=== init() starting ===');
+
+            // STEP 1: ALWAYS load defaults first as safety net
+            targets = JSON.parse(JSON.stringify(defaultTargets));
+            console.log('Step 1 - Defaults loaded:', targets.length);
+
+            // STEP 2: Try localStorage (might have newer data than defaults)
+            let saved = localStorage.getItem('tornTargets');
+            if (!saved) saved = localStorage.getItem('tornTargetsBackup');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        targets = parsed;
+                        targets.forEach(t => {
+                            if (t.ffscouterStats === undefined) t.ffscouterStats = null;
+                            if (t.ffscouterFF === undefined) t.ffscouterFF = null;
+                            if (t.lastUpdated === undefined) t.lastUpdated = null;
+                        });
+                        console.log('Step 2 - localStorage loaded:', targets.length);
+                    } else {
+                        console.log('Step 2 - localStorage empty/invalid, keeping defaults');
+                    }
+                } catch (err) {
+                    console.error('Step 2 - Failed to parse localStorage:', err);
+                }
+            } else {
+                console.log('Step 2 - No localStorage data');
+            }
+
+            // STEP 3: Try to fetch shared targets.json (latest shared data)
+            try {
+                const fetchUrl = 'targets.json?v=' + Date.now();
+                console.log('Step 3 - Fetching:', fetchUrl);
+                const response = await fetch(fetchUrl, { cache: 'no-store' });
+                console.log('Step 3 - Response status:', response.status, 'ok:', response.ok);
+
+                if (response.ok) {
+                    const responseText = await response.text();
+                    console.log('Step 3 - Response length:', responseText.length);
+                    console.log('Step 3 - First 100 chars:', responseText.substring(0, 100));
+
+                    // Check if response is HTML instead of JSON (GitHub Pages fallback)
+                    if (responseText.trim().startsWith('<') || responseText.trim().startsWith('<!')) {
+                        console.log('Step 3 - WARNING: Response is HTML, not JSON. GitHub Pages may not have propagated targets.json yet.');
+                        // Keep whatever we have (defaults or localStorage)
+                    } else {
+                        try {
+                            const sharedData = JSON.parse(responseText);
+                            console.log('Step 3 - Parsed type:', typeof sharedData, 'isArray:', Array.isArray(sharedData), 'length:', sharedData.length);
+
+                            if (Array.isArray(sharedData) && sharedData.length > 0) {
+                                targets = sharedData;
+                                targets.forEach(t => {
+                                    if (t.ffscouterStats === undefined) t.ffscouterStats = null;
+                                    if (t.ffscouterFF === undefined) t.ffscouterFF = null;
+                                    if (t.lastUpdated === undefined) t.lastUpdated = null;
+                                });
+                                console.log('Step 3 - Loaded from targets.json:', targets.length);
+                                saveTargets(); // Cache to localStorage
+                            } else {
+                                console.log('Step 3 - targets.json empty or invalid, keeping current data');
+                            }
+                        } catch (parseErr) {
+                            console.error('Step 3 - JSON parse error:', parseErr.message);
+                        }
+                    }
+                } else {
+                    console.log('Step 3 - Fetch failed with status:', response.status);
+                }
+            } catch (e) {
+                console.error('Step 3 - Fetch error:', e.message);
+            }
+
+            // STEP 4: Final safety check - if still empty, force defaults
+            if (!Array.isArray(targets) || targets.length === 0) {
+                console.log('Step 4 - EMERGENCY: targets is empty, forcing defaults!');
+                targets = JSON.parse(JSON.stringify(defaultTargets));
+                saveTargets();
+            }
+
+            // Load settings
+            ffscouterKey = localStorage.getItem('tornFFScouterKey') || '';
+            tornApiKey = localStorage.getItem('tornApiKey') || '';
+            githubToken = localStorage.getItem('githubToken') || '';
+            githubRepo = localStorage.getItem('githubRepo') || 'tornsitetracker/tornsitetracker.github.io';
+
+            const adminSession = localStorage.getItem('tornAdmin');
+            if (adminSession === 'true') {
+                isAdmin = true;
+            }
+
+            updateAdminUI();
+            render();
+            updateStats();
+            console.log('=== init() complete. Final targets count:', targets.length, '===');
+        }
+
+        function saveTargets() {
+            try {
+                const data = JSON.stringify(targets);
+                localStorage.setItem('tornTargets', data);
+                // Also save to backup key for extra safety
+                localStorage.setItem('tornTargetsBackup', data);
+                console.log('Saved ' + targets.length + ' targets');
+            } catch (e) {
+                console.error('Failed to save targets:', e);
+                showToast('Failed to save data!', 'error');
+            }
+        }
+
+        // ===================== ADMIN UI =====================
+        function updateAdminUI() {
+            const loginBtn = document.getElementById('loginBtn');
+            const adminBadge = document.getElementById('adminBadge');
+            const adminOnlyElements = document.querySelectorAll('.admin-only');
+            const actionsHeader = document.getElementById('actionsHeader');
+
+            if (isAdmin) {
+                loginBtn.style.display = 'none';
+                adminBadge.classList.add('visible');
+                adminOnlyElements.forEach(el => el.classList.add('visible'));
+                if (actionsHeader) actionsHeader.style.display = 'table-cell';
+            } else {
+                loginBtn.style.display = 'inline-flex';
+                adminBadge.classList.remove('visible');
+                adminOnlyElements.forEach(el => el.classList.remove('visible'));
+                if (actionsHeader) actionsHeader.style.display = 'none';
+                document.getElementById('addForm').classList.remove('active');
+                document.getElementById('editForm').classList.remove('active');
+            }
+        }
+
+        function showLogin() {
+            document.getElementById('loginModal').classList.add('active');
+            document.getElementById('loginPassword').value = '';
+            document.getElementById('loginPassword').focus();
+        }
+
+        function hideLogin() {
+            document.getElementById('loginModal').classList.remove('active');
+        }
+
+        async function doLogin() {
+            const pw = document.getElementById('loginPassword').value;
+            const inputHash = await sha256(pw);
+            if (inputHash === ADMIN_HASH) {
+                isAdmin = true;
+                localStorage.setItem('tornAdmin', 'true');
+                hideLogin();
+                updateAdminUI();
+                render();
+                showToast('Logged in as Admin!', 'success');
+            } else {
+                showToast('Wrong password!', 'error');
+                document.getElementById('loginPassword').value = '';
+                document.getElementById('loginPassword').focus();
+            }
+        }
+
+        function logout() {
+            isAdmin = false;
+            localStorage.removeItem('tornAdmin');
+            updateAdminUI();
+            render();
+            showToast('Logged out', 'info');
+        }
+
+        // ===================== SETTINGS =====================
+        function showSettings() {
+            if (!isAdmin) return;
+            const keyInput = document.getElementById('ffscouterKey');
+            const statusDiv = document.getElementById('keyStatus');
+            const tornInput = document.getElementById('tornApiKey');
+            const tornStatusDiv = document.getElementById('tornKeyStatus');
+
+            keyInput.value = ffscouterKey;
+            tornInput.value = tornApiKey;
+
+            if (ffscouterKey && ffscouterKey.length === 16) {
+                statusDiv.className = 'key-status saved';
+                statusDiv.textContent = 'FFScouter key saved (' + ffscouterKey.substring(0, 4) + '****' + ffscouterKey.substring(12) + ')';
+            } else {
+                statusDiv.className = 'key-status none';
+                statusDiv.textContent = 'No FFScouter key saved';
+            }
+
+            if (tornApiKey && tornApiKey.length > 10) {
+                tornStatusDiv.className = 'key-status saved';
+                tornStatusDiv.textContent = 'Torn API key saved (' + tornApiKey.substring(0, 4) + '****' + tornApiKey.substring(tornApiKey.length-4) + ')';
+            } else {
+                tornStatusDiv.className = 'key-status none';
+                tornStatusDiv.textContent = 'No Torn API key saved (optional)';
+            }
+
+            const githubInput = document.getElementById('githubToken');
+            const githubStatusDiv = document.getElementById('githubTokenStatus');
+            const githubRepoInput = document.getElementById('githubRepo');
+            githubInput.value = githubToken;
+            githubRepoInput.value = githubRepo;
+
+            if (githubToken && githubToken.length > 30) {
+                githubStatusDiv.className = 'key-status saved';
+                githubStatusDiv.textContent = 'GitHub token saved (' + githubToken.substring(0, 4) + '****' + githubToken.substring(githubToken.length-4) + ')';
+            } else {
+                githubStatusDiv.className = 'key-status none';
+                githubStatusDiv.textContent = 'No GitHub token saved (optional)';
+            }
+
+            document.getElementById('settingsModal').classList.add('active');
+            keyInput.focus();
+        }
+
+        function hideSettings() {
+            document.getElementById('settingsModal').classList.remove('active');
+        }
+
+        function saveSettings() {
+            const key = document.getElementById('ffscouterKey').value.trim();
+            const tornKey = document.getElementById('tornApiKey').value.trim();
+            const ghToken = document.getElementById('githubToken').value.trim();
+
+            if (key && key.length !== 16) {
+                showToast('FFScouter key must be exactly 16 characters!', 'error');
+                return;
+            }
+            if (key) {
+                ffscouterKey = key;
+                localStorage.setItem('tornFFScouterKey', key);
+            }
+            if (tornKey) {
+                tornApiKey = tornKey;
+                localStorage.setItem('tornApiKey', tornKey);
+            }
+            if (ghToken) {
+                if (!ghToken.startsWith('ghp_') && !ghToken.startsWith('github_pat_')) {
+                    showToast('GitHub token should start with ghp_ or github_pat_', 'warn');
+                }
+                githubToken = ghToken;
+                localStorage.setItem('githubToken', ghToken);
+            }
+            const ghRepo = document.getElementById('githubRepo').value.trim();
+            if (ghRepo) {
+                githubRepo = ghRepo;
+                localStorage.setItem('githubRepo', ghRepo);
+            }
+            showToast('Settings saved!', 'success');
+            hideSettings();
+        }
+
+        function clearSettings() {
+            ffscouterKey = '';
+            tornApiKey = '';
+            githubToken = '';
+            githubRepo = 'tornsitetracker/tornsitetracker.github.io';
+            localStorage.removeItem('tornFFScouterKey');
+            localStorage.removeItem('tornApiKey');
+            localStorage.removeItem('githubToken');
+            localStorage.removeItem('githubRepo');
+            document.getElementById('ffscouterKey').value = '';
+            document.getElementById('tornApiKey').value = '';
+            document.getElementById('githubToken').value = '';
+            document.getElementById('githubRepo').value = '';
+            document.getElementById('keyStatus').className = 'key-status none';
+            document.getElementById('keyStatus').textContent = 'No FFScouter key saved';
+            document.getElementById('tornKeyStatus').className = 'key-status none';
+            document.getElementById('tornKeyStatus').textContent = 'No Torn API key saved';
+            document.getElementById('githubTokenStatus').className = 'key-status none';
+            document.getElementById('githubTokenStatus').textContent = 'No GitHub token saved';
+            showToast('All API keys cleared', 'info');
+        }
+
+        // ===================== FFSCOUTER REFRESH (BATCH API) =====================
+        async function refreshFromFFScouter() {
+            if (!isAdmin) return;
+            if (!ffscouterKey || ffscouterKey.length !== 16) {
+                showToast('Please set your FFScouter API key in Settings first!', 'warn');
+                showSettings();
+                return;
+            }
+
+            const progressBar = document.getElementById('progressBar');
+            const progressFill = document.getElementById('progressFill');
+            progressBar.classList.add('active');
+            progressFill.style.width = '5%';
+
+            showToast('Fetching stats from FFScouter...', 'info');
+
+            const BATCH_SIZE = 205;
+            const allTargetIds = targets.map(t => t.id);
+            const batches = [];
+            for (let i = 0; i < allTargetIds.length; i += BATCH_SIZE) {
+                batches.push(allTargetIds.slice(i, i + BATCH_SIZE));
+            }
+
+            let totalUpdated = 0;
+            let totalNoData = 0;
+            let totalErrors = 0;
+            let totalNotFound = 0;
+
+            for (let batchIdx = 0; batchIdx < batches.length; batchIdx++) {
+                const batch = batches[batchIdx];
+                const targetIdsStr = batch.join(',');
+                const progress = ((batchIdx + 1) / batches.length) * 100;
+                progressFill.style.width = Math.max(5, progress - 10) + '%';
+
+                try {
+                    const url = `${FFSCOUTER_API_BASE}/get-stats?key=${encodeURIComponent(ffscouterKey)}&targets=${targetIdsStr}`;
+                    console.log('FFScouter API URL:', url.replace(ffscouterKey, ffscouterKey.substring(0,4)+'****'+ffscouterKey.substring(12)));
+
+                    const response = await fetch(url, { method: 'GET' });
+                    console.log('Response status:', response.status);
+
+                    if (!response.ok) {
+                        const errText = await response.text();
+                        console.log('Error response body:', errText);
+                        let errData = {};
+                        try { errData = JSON.parse(errText); } catch(e) {}
+                        const errMsg = errData.error || `HTTP ${response.status}`;
+                        if (errData.code) {
+                            showToast(`FFScouter error [${errData.code}]: ${errMsg}`, 'error');
+                        } else {
+                            showToast(`FFScouter error: ${errMsg}`, 'error');
+                        }
+                        totalErrors++;
+                        continue;
+                    }
+
+                    const data = await response.json();
+                    console.log('FFScouter raw response:', JSON.stringify(data, null, 2));
+
+                    if (Array.isArray(data)) {
+                        console.log(`Received ${data.length} player objects`);
+
+                        if (data.length === 0) {
+                            console.log('WARNING: Empty array returned');
+                            totalErrors++;
+                            continue;
+                        }
+
+                        data.forEach((playerData, idx) => {
+                            console.log(`Player ${idx}:`, JSON.stringify(playerData));
+                            const pid = String(playerData.player_id);
+                            const target = targets.find(t => t.id === pid);
+
+                            if (!target) {
+                                console.log(`Player ${pid} not found in target list`);
+                                totalNotFound++;
+                                return;
+                            }
+
+                            console.log(`Found target ${target.name} (ID: ${pid})`);
+                            console.log(`  bs_estimate:`, playerData.bs_estimate, `type:`, typeof playerData.bs_estimate);
+                            console.log(`  fair_fight:`, playerData.fair_fight);
+                            console.log(`  last_updated:`, playerData.last_updated);
+                            console.log(`  source:`, playerData.source);
+
+                            if (playerData.bs_estimate !== null && playerData.bs_estimate !== undefined && !isNaN(playerData.bs_estimate)) {
+                                target.ffscouterStats = Number(playerData.bs_estimate);
+                                target.ffscouterStatsHuman = playerData.bs_estimate_human || null;
+                                target.ffscouterFF = playerData.fair_fight;
+                                target.lastUpdated = playerData.last_updated ? new Date(playerData.last_updated * 1000).toISOString() : null;
+                                target.source = playerData.source || 'bss';
+                                target.premiumInsights = playerData.premium_insights_available || false;
+                                target.distribution = playerData.distribution || null;
+                                totalUpdated++;
+                                console.log(`  -> UPDATED successfully`);
+                            } else {
+                                totalNoData++;
+                                console.log(`  -> NO DATA (bs_estimate is null/undefined/NaN)`);
+                            }
+                        });
+                    } else if (data && typeof data === 'object') {
+                        console.log('Response is object, not array:', data);
+                        if (data.error) {
+                            showToast(`FFScouter error: ${data.error}`, 'error');
+                            totalErrors++;
+                        } else {
+                            showToast('Unexpected response format from FFScouter', 'error');
+                            totalErrors++;
+                        }
+                    } else {
+                        console.log('Unexpected response type:', typeof data, data);
+                        showToast('Unexpected response from FFScouter', 'error');
+                        totalErrors++;
+                    }
+                } catch (err) {
+                    console.error('Network/parse error:', err);
+                    showToast(`Network error (batch ${batchIdx + 1}): ${err.message}`, 'error');
+                    totalErrors++;
+                }
+
+                if (batchIdx < batches.length - 1) {
+                    showToast(`Waiting for rate limit... batch ${batchIdx + 1}/${batches.length}`, 'info');
+                    await new Promise(r => setTimeout(r, 4000));
+                }
+            }
+
+            console.log('=== REFRESH SUMMARY ===');
+            console.log('Total targets:', targets.length);
+            console.log('Updated:', totalUpdated);
+            console.log('No data:', totalNoData);
+            console.log('Not found in response:', totalNotFound);
+            console.log('Errors:', totalErrors);
+
+            saveTargets();
+            render();
+            updateStats();
+
+            if (totalUpdated > 0) {
+                showToast(`Updated ${totalUpdated} targets from FFScouter (${totalNoData} no data, ${totalErrors} errors)`, 'success');
+            } else if (totalErrors > 0) {
+                showToast(`Refresh failed: ${totalErrors} error(s), ${totalNoData} no data`, 'error');
+            } else if (totalNotFound > 0) {
+                showToast(`No matching targets found in FFScouter response (${totalNotFound} IDs not found)`, 'warn');
+            } else {
+                showToast('No FFScouter data found for any targets. They may not be in the database yet.', 'warn');
+            }
+
+            progressFill.style.width = '100%';
+            setTimeout(() => {
+                progressBar.classList.remove('active');
+                progressFill.style.width = '0%';
+            }, 500);
+        }
+
+                // ===================== RENDER =====================
+        function render() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const ffFilter = document.getElementById('filterFF').value;
+            const levelFilter = document.getElementById('filterLevel').value;
+
+            let filtered = targets.filter(t => {
+                const matchSearch = t.name.toLowerCase().includes(search) || t.id.includes(search);
+                const matchFF = !ffFilter || (t.ffscouterFF || t.ff) == ffFilter;
+                const matchLevel = !levelFilter || t.level == levelFilter;
+                return matchSearch && matchFF && matchLevel;
+            });
+
+            filtered.sort((a, b) => {
+                let va = a[sortCol];
+                let vb = b[sortCol];
+                if (sortCol === 'inactive') {
+                    va = inactiveToDays(va);
+                    vb = inactiveToDays(vb);
+                } else if (sortCol === 'lastUpdated') {
+                    va = a.lastUpdated ? new Date(a.lastUpdated).getTime() : 0;
+                    vb = b.lastUpdated ? new Date(b.lastUpdated).getTime() : 0;
+                } else if (sortCol === 'stats') {
+                    va = a.ffscouterStats !== null ? a.ffscouterStats : a.stats;
+                    vb = b.ffscouterStats !== null ? b.ffscouterStats : b.stats;
+                } else if (sortCol === 'ff') {
+                    va = a.ffscouterFF !== null ? a.ffscouterFF : a.ff;
+                    vb = b.ffscouterFF !== null ? b.ffscouterFF : b.ff;
+                }
+                if (typeof va === 'string') va = va.toLowerCase();
+                if (typeof vb === 'string') vb = vb.toLowerCase();
+                if (va < vb) return sortDir === 'asc' ? -1 : 1;
+                if (va > vb) return sortDir === 'asc' ? 1 : -1;
+                return 0;
+            });
+
+            const tbody = document.getElementById('targetTable');
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="${isAdmin ? 7 : 6}"><div class="empty-state"><h3>No targets found</h3><p>Try adjusting your filters or add new targets.</p><button class="btn btn-success" onclick="restoreFromLocalStorage()" style="margin-top:15px;">🔄 Restore from Backup</button></div></td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map((t, i) => {
+                const realIndex = targets.indexOf(t);
+                const inactiveClass = getInactiveClass(t.inactive);
+
+                let statsDisplay = '';
+                let statsClass = 'stats-value';
+                if (t.ffscouterStats !== null && t.ffscouterStats !== undefined) {
+                    const daysOld = t.lastUpdated ? (Date.now() - new Date(t.lastUpdated).getTime()) / (1000 * 60 * 60 * 24) : 999;
+                    if (daysOld < 7) {
+                        statsClass = 'stats-value stats-fresh';
+                    } else if (daysOld < 30) {
+                        statsClass = 'stats-value stats-stale';
+                    } else {
+                        statsClass = 'stats-value stats-old';
+                    }
+                    statsDisplay = t.ffscouterStats.toLocaleString();
+                } else {
+                    statsClass = 'stats-value stats-na';
+                    statsDisplay = t.stats ? t.stats.toLocaleString() : 'N/A';
+                }
+
+                let infoDisplay = '';
+                if (t.lastUpdated) {
+                    const date = new Date(t.lastUpdated);
+                    const daysOld = (Date.now() - date.getTime()) / (1000 * 60 * 60 * 24);
+                    let ageColor = '#22c55e';
+                    if (daysOld > 7) ageColor = '#eab308';
+                    if (daysOld > 30) ageColor = '#ef4444';
+                    infoDisplay = `<span style="color:${ageColor};font-size:0.8rem;">${date.toLocaleDateString()}</span>`;
+                } else {
+                    infoDisplay = '<span style="color:#64748b;font-size:0.8rem;">-</span>';
+                }
+
+                const actionsCell = isAdmin ? `
+                    <td>
+                        <div class="actions">
+                            <button class="btn-edit" onclick="editTarget(${realIndex})">Edit</button>
+                            <button class="btn-del" onclick="deleteTarget(${realIndex})">Del</button>
+                        </div>
+                    </td>` : '';
+
+                return `
+                <tr>
+                    <td>
+                        <div class="name-cell">
+                            <span class="username">${escapeHtml(t.name)}</span>
+                            <span class="player-id"><a href="https://www.torn.com/profiles.php?XID=${t.id}" target="_blank">[${t.id}]</a></span>
+                        </div>
+                    </td>
+                    <td><span class="level-badge">${t.level}</span></td>
+                    <td><span class="ff-badge ff-${Math.round(t.ffscouterFF || t.ff)}">${(t.ffscouterFF || t.ff).toFixed ? (t.ffscouterFF || t.ff).toFixed(2) : (t.ffscouterFF || t.ff)}</span></td>
+                    <td><span class="${statsClass}">${statsDisplay}</span></td>
+                    <td><span class="inactive ${inactiveClass}">${escapeHtml(t.inactive)}</span></td>
+                    <td>${infoDisplay}</td>
+                    ${actionsCell}
+                </tr>`;
+            }).join('');
+
+            document.querySelectorAll('th').forEach(th => th.classList.remove('sorted'));
+            const activeTh = document.getElementById('sort-' + sortCol);
+            if (activeTh) {
+                activeTh.parentElement.classList.add('sorted');
+                activeTh.textContent = sortDir === 'asc' ? '&#x25B2;' : '&#x25BC;';
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('totalTargets').textContent = targets.length;
+            const avgLevel = targets.length ? (targets.reduce((s, t) => s + Number(t.level), 0) / targets.length).toFixed(1) : 0;
+            const avgFF = targets.length ? (targets.reduce((s, t) => s + Number(t.ffscouterFF || t.ff), 0) / targets.length).toFixed(1) : 0;
+            const inactive15 = targets.filter(t => inactiveToDays(t.inactive) >= 15).length;
+            document.getElementById('avgLevel').textContent = avgLevel;
+            document.getElementById('avgFF').textContent = avgFF;
+            document.getElementById('inactiveCount').textContent = inactive15;
+        }
+
+        // ===================== SORTING =====================
+        function sortBy(col) {
+            if (sortCol === col) {
+                sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+            } else {
+                sortCol = col;
+                sortDir = 'asc';
+            }
+            ['name','level','ff','stats','inactive','lastUpdated'].forEach(c => {
+                const el = document.getElementById('sort-' + c);
+                if (el) el.textContent = '\u2195';
+            });
+            render();
+        }
+
+        // ===================== ADD =====================
+        function toggleAddForm() {
+            if (!isAdmin) return;
+            const form = document.getElementById('addForm');
+            form.classList.toggle('active');
+            if (form.classList.contains('active')) {
+                document.getElementById('newName').focus();
+                closeEditForm();
+            }
+        }
+
+        function addTarget() {
+            if (!isAdmin) return;
+            const name = document.getElementById('newName').value.trim();
+            const id = document.getElementById('newId').value.trim();
+            let level = parseInt(document.getElementById('newLevel').value);
+            const ff = document.getElementById('newFF').value;
+            const stats = document.getElementById('newStats').value;
+            const inactive = document.getElementById('newInactive').value.trim();
+
+            if (!name || !id) {
+                showToast('Username and ID are required!', 'error');
+                return;
+            }
+
+            if (isNaN(level) || level < 1 || level > 100) {
+                showToast('Level must be between 1 and 100!', 'error');
+                return;
+            }
+
+            targets.push({
+                name, id, level: level, ff: ff || 3,
+                stats: stats ? Number(stats) : 0,
+                inactive: inactive || 'Unknown',
+                ffscouterStats: null,
+                ffscouterFF: null,
+                lastUpdated: null
+            });
+            saveTargets();
+            render();
+            updateStats();
+            showToast('Target added successfully!', 'success');
+
+            document.getElementById('newName').value = '';
+            document.getElementById('newId').value = '';
+            document.getElementById('newLevel').value = '';
+            document.getElementById('newFF').value = '';
+            document.getElementById('newStats').value = '';
+            document.getElementById('newInactive').value = '';
+        }
+
+        // ===================== EDIT =====================
+        function editTarget(index) {
+            if (!isAdmin) return;
+            const t = targets[index];
+            editIndex = index;
+            document.getElementById('editIndex').value = index;
+            document.getElementById('editName').value = t.name;
+            document.getElementById('editId').value = t.id;
+            document.getElementById('editLevel').value = t.level;
+            document.getElementById('editFF').value = t.ff;
+            document.getElementById('editStats').value = t.stats;
+            document.getElementById('editInactive').value = t.inactive;
+            document.getElementById('editForm').classList.add('active');
+            document.getElementById('addForm').classList.remove('active');
+        }
+
+        function saveEdit() {
+            if (!isAdmin || editIndex < 0) return;
+            const name = document.getElementById('editName').value.trim();
+            const id = document.getElementById('editId').value.trim();
+            let level = parseInt(document.getElementById('editLevel').value);
+            if (!name || !id) {
+                showToast('Username and ID are required!', 'error');
+                return;
+            }
+            if (isNaN(level) || level < 1 || level > 100) {
+                showToast('Level must be between 1 and 100!', 'error');
+                return;
+            }
+            targets[editIndex] = {
+                name,
+                id,
+                level: level,
+                ff: document.getElementById('editFF').value || 3,
+                stats: Number(document.getElementById('editStats').value) || 0,
+                inactive: document.getElementById('editInactive').value.trim() || 'Unknown',
+                ffscouterStats: targets[editIndex].ffscouterStats,
+                ffscouterFF: targets[editIndex].ffscouterFF,
+                lastUpdated: targets[editIndex].lastUpdated
+            };
+            saveTargets();
+            render();
+            updateStats();
+            closeEditForm();
+            showToast('Target updated!', 'success');
+        }
+
+        function closeEditForm() {
+            document.getElementById('editForm').classList.remove('active');
+            editIndex = -1;
+        }
+
+        // ===================== DELETE =====================
+        function deleteTarget(index) {
+            if (!isAdmin) return;
+            if (!confirm('Delete ' + targets[index].name + '?')) return;
+            targets.splice(index, 1);
+            saveTargets();
+            render();
+            updateStats();
+            showToast('Target deleted', 'info');
+        }
+
+        function clearAll() {
+            if (!isAdmin) return;
+            if (!confirm('Delete ALL targets? This cannot be undone!')) return;
+            targets = [];
+            saveTargets();
+            render();
+            updateStats();
+            showToast('All targets cleared', 'info');
+        }
+
+        // ===================== EXPORT =====================
+        function exportData() {
+            const data = JSON.stringify(targets, null, 2);
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'torn-targets-' + new Date().toISOString().slice(0,10) + '.json';
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('Data exported!', 'success');
+        }
+
+        // ===================== HELPERS =====================
+        function inactiveToDays(str) {
+            if (!str) return 999;
+            const s = str.toLowerCase().trim();
+            const m = s.match(/(\d+)\s*day/);
+            if (m) return parseInt(m[1]);
+            if (s.includes('month')) {
+                const mm = s.match(/(\d+)\s*month/);
+                return (mm ? parseInt(mm[1]) : 1) * 30;
+            }
+            if (s.includes('year')) {
+                const ym = s.match(/(\d+)\s*year/);
+                return (ym ? parseInt(ym[1]) : 1) * 365;
+            }
+            return 999;
+        }
+
+        function getInactiveClass(str) {
+            const days = inactiveToDays(str);
+            if (days >= 30) return 'danger';
+            if (days >= 20) return 'warn';
+            return '';
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function showToast(msg, type) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.className = 'toast ' + type + ' show';
+            setTimeout(() => toast.classList.remove('show'), 2500);
+        }
+
+
+        // ===================== BULK ADD =====================
+        function showBulkAdd() {
+            if (!isAdmin) return;
+            document.getElementById('bulkInput').value = '';
+            const previewDiv = document.getElementById('bulkPreview');
+            previewDiv.innerHTML = '';
+            previewDiv.style.display = 'none';
+            document.getElementById('bulkAddConfirmBtn').style.display = 'none';
+            parsedBulkTargets = [];
+            document.getElementById('bulkAddModal').classList.add('active');
+            document.getElementById('bulkInput').focus();
+        }
+
+        function hideBulkAdd() {
+            document.getElementById('bulkAddModal').classList.remove('active');
+        }
+
+        function parseFFScouterTable(text) {
+            const lines = text.split(/\n/).map(l => l.trim()).filter(l => l.length > 0);
+            const players = [];
+            const nameIdPattern = /^([^\[\]]+?)\s*\[(\d{7,10})\]\s*$/;
+
+            let i = 0;
+            while (i < lines.length) {
+                const line = lines[i];
+                const nameMatch = line.match(nameIdPattern);
+
+                if (nameMatch) {
+                    const name = nameMatch[1].trim();
+                    const id = nameMatch[2];
+
+                    if (i + 1 < lines.length) {
+                        const dataLine = lines[i + 1];
+                        const parts = dataLine.split(/\s+/).filter(p => p.length > 0);
+
+                        if (parts.length >= 4) {
+                            const level = parseInt(parts[0]);
+                            const ff = parseFloat(parts[1]);
+                            const stats = parseInt(parts[2]);
+                            const inactive = parts.slice(3).join(' ');
+
+                            if (!isNaN(level) && level >= 1 && level <= 100 && 
+                                !isNaN(ff) && ff >= 1 && ff <= 5 &&
+                                !isNaN(stats) && stats > 0) {
+                                players.push({
+                                    name: name,
+                                    id: id,
+                                    level: level,
+                                    ff: ff,
+                                    stats: stats,
+                                    inactive: inactive,
+                                    source: 'ffscouter'
+                                });
+                                i += 2;
+                                continue;
+                            }
+                        }
+                    }
+
+                    players.push({
+                        name: name,
+                        id: id,
+                        level: null,
+                        ff: null,
+                        stats: null,
+                        inactive: null,
+                        source: 'ffscouter'
+                    });
+                    i++;
+                } else {
+                    i++;
+                }
+            }
+
+            return players;
+        }
+
+        function parseBulkInput() {
+            const text = document.getElementById('bulkInput').value;
+            if (!text.trim()) {
+                showToast('Please paste some text first!', 'warn');
+                return;
+            }
+
+            parsedBulkTargets = [];
+            const seen = new Set();
+
+            const ffscouterPlayers = parseFFScouterTable(text);
+            if (ffscouterPlayers.length > 0) {
+                ffscouterPlayers.forEach(p => {
+                    if (!seen.has(p.id)) {
+                        seen.add(p.id);
+                        parsedBulkTargets.push(p);
+                    }
+                });
+            }
+
+            if (parsedBulkTargets.length === 0) {
+                const urlPattern = /profiles\.php\?XID=(\d+)/g;
+                let match;
+                while ((match = urlPattern.exec(text)) !== null) {
+                    const id = match[1];
+                    if (!seen.has(id)) {
+                        seen.add(id);
+                        parsedBulkTargets.push({ id: id, name: '', level: null, ff: null, stats: null, inactive: null, source: 'url' });
+                    }
+                }
+
+                const plainText = text.replace(/https?:\/\/[^\s]+/g, '');
+                const numPattern = /\b(\d{7,10})\b/g;
+                while ((match = numPattern.exec(plainText)) !== null) {
+                    const id = match[1];
+                    if (!seen.has(id)) {
+                        seen.add(id);
+                        parsedBulkTargets.push({ id: id, name: '', level: null, ff: null, stats: null, inactive: null, source: 'id' });
+                    }
+                }
+
+                const bracketPattern = /([^\[\]\n\r]+?)\s*\[(\d{7,10})\]/g;
+                while ((match = bracketPattern.exec(text)) !== null) {
+                    const id = match[2];
+                    let name = match[1].trim();
+                    name = name.replace(/^\d+\.\s*/, '').replace(/^[-\u2022*]\s*/, '').trim();
+                    if (seen.has(id)) {
+                        const existing = parsedBulkTargets.find(t => t.id === id);
+                        if (existing && name) existing.name = name;
+                    } else {
+                        seen.add(id);
+                        parsedBulkTargets.push({ id: id, name: name, level: null, ff: null, stats: null, inactive: null, source: 'bracket' });
+                    }
+                }
+            }
+
+            if (parsedBulkTargets.length === 0) {
+                const previewDiv = document.getElementById('bulkPreview');
+                previewDiv.innerHTML = '<span style="color:#ef4444; display:block; padding:8px;">❌ No player IDs found. Try pasting Torn profile URLs, IDs, or FFScouter table data.</span>';
+                previewDiv.style.display = 'block';
+                document.getElementById('bulkAddConfirmBtn').style.display = 'none';
+                return;
+            }
+
+            let preview = '<div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">' +
+                '<span style="background:#064e3b; color:#22c55e; padding:3px 10px; border-radius:20px; font-size:0.8rem; font-weight:600;">' + parsedBulkTargets.length + ' found</span>' +
+                '<span style="color:#64748b; font-size:0.8rem;">Ready to import</span>' +
+                '</div>';
+            preview += '<table style="width:100%; font-size:0.82rem; border-collapse:collapse;">';
+            preview += '<thead><tr style="color:#94a3b8; text-align:left; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.5px;">' +
+                '<th style="padding:6px 8px;">Player</th>' +
+                '<th style="padding:6px 8px; text-align:center;">Lvl</th>' +
+                '<th style="padding:6px 8px; text-align:center;">FF</th>' +
+                '<th style="padding:6px 8px; text-align:right;">Stats</th>' +
+                '<th style="padding:6px 8px; text-align:right;">Inactive</th>' +
+                '</tr></thead><tbody>';
+
+            parsedBulkTargets.slice(0, 10).forEach(t => {
+                const nameColor = t.source === 'ffscouter' ? '#38bdf8' : '#e2e8f0';
+                preview += '<tr style="border-top:1px solid #1e293b;">' +
+                    '<td style="padding:6px 8px;">' +
+                        '<div style="display:flex; flex-direction:column;">' +
+                            '<span style="color:' + nameColor + '; font-weight:600;">' + escapeHtml(t.name || 'Unknown') + '</span>' +
+                            '<span style="color:#64748b; font-size:0.75rem;">[' + t.id + ']</span>' +
+                        '</div>' +
+                    '</td>' +
+                    '<td style="padding:6px 8px; text-align:center;"><span style="background:#0f172a; border:1px solid #334155; padding:2px 8px; border-radius:12px; font-size:0.8rem;">' + (t.level || '?') + '</span></td>' +
+                    '<td style="padding:6px 8px; text-align:center;"><span style="color:#f59e0b; font-weight:600;">' + (t.ff || '?') + '</span></td>' +
+                    '<td style="padding:6px 8px; text-align:right; font-family:monospace;">' + (t.stats ? t.stats.toLocaleString() : '?') + '</td>' +
+                    '<td style="padding:6px 8px; text-align:right; color:#94a3b8;">' + escapeHtml(t.inactive || '?') + '</td>' +
+                '</tr>';
+            });
+            if (parsedBulkTargets.length > 10) {
+                preview += '<tr><td colspan="5" style="padding:8px; color:#64748b; text-align:center; font-size:0.8rem;">... and ' + (parsedBulkTargets.length - 10) + ' more</td></tr>';
+            }
+            preview += '</tbody></table>';
+
+            const previewDiv = document.getElementById('bulkPreview');
+            previewDiv.innerHTML = preview;
+            previewDiv.style.display = 'block';
+            document.getElementById('bulkAddConfirmBtn').style.display = 'inline-flex';
+
+            showToast('Found ' + parsedBulkTargets.length + ' player IDs', 'success');
+        }
+
+        async function addBulkTargets() {
+            if (!isAdmin || parsedBulkTargets.length === 0) return;
+
+            let added = 0;
+            let updated = 0;
+
+            const needsApiFetch = parsedBulkTargets.some(t => !t.name || !t.level);
+            if (tornApiKey && needsApiFetch) {
+                showToast('Fetching player info from Torn API...', 'info');
+                const ids = parsedBulkTargets.filter(t => !t.name || !t.level).map(t => t.id).join(',');
+                try {
+                    const url = 'https://api.torn.com/user/' + ids + '?selections=basic&key=' + encodeURIComponent(tornApiKey);
+                    const response = await fetch(url);
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data && !data.error) {
+                            parsedBulkTargets.forEach(target => {
+                                const playerData = data[target.id];
+                                if (playerData) {
+                                    if (!target.name) target.name = playerData.name;
+                                    if (!target.level) target.level = playerData.level;
+                                }
+                            });
+                        }
+                    }
+                } catch (e) {
+                    console.log('Torn API fetch failed:', e);
+                }
+            }
+
+            parsedBulkTargets.forEach(t => {
+                const existing = targets.find(existing => existing.id === t.id);
+                if (existing) {
+                    if (t.level) existing.level = t.level;
+                    if (t.ff) existing.ff = t.ff;
+                    if (t.stats) existing.stats = t.stats;
+                    if (t.inactive) existing.inactive = t.inactive;
+                    if (t.name && !existing.name.startsWith('Player_')) existing.name = t.name;
+                    updated++;
+                    return;
+                }
+                targets.push({
+                    name: t.name || 'Player_' + t.id,
+                    id: t.id,
+                    level: t.level || 1,
+                    ff: t.ff || 3,
+                    stats: t.stats || 0,
+                    inactive: t.inactive || 'Unknown',
+                    ffscouterStats: null,
+                    ffscouterFF: null,
+                    lastUpdated: null
+                });
+                added++;
+            });
+
+            saveTargets();
+            render();
+            updateStats();
+            hideBulkAdd();
+
+            if (added > 0 && updated > 0) {
+                showToast('Added ' + added + ' new, updated ' + updated + ' existing. Click 📤 Publish to share!', 'success');
+            } else if (added > 0) {
+                showToast('Added ' + added + ' new targets. Click 📤 Publish to share with everyone!', 'success');
+            } else if (updated > 0) {
+                showToast('Updated ' + updated + ' existing targets', 'success');
+            } else {
+                showToast('All targets already existed', 'info');
+            }
+        }
+
+
+
+        function loadDefaults() {
+            if (!isAdmin) return;
+            targets = JSON.parse(JSON.stringify(defaultTargets));
+            saveTargets();
+            render();
+            updateStats();
+            showToast('Loaded ' + targets.length + ' default targets', 'success');
+        }
+
+                // ===================== SHARED LIST PUBLISH =====================
+        async function publishSharedList() {
+            if (!isAdmin) return;
+            if (targets.length === 0) {
+                showToast('No targets to publish!', 'warn');
+                return;
+            }
+
+            if (!githubToken) {
+                showToast('Please set your GitHub token in Settings first!', 'warn');
+                showSettings();
+                return;
+            }
+
+            showToast('Publishing to GitHub...', 'info');
+
+            try {
+                // Determine auth header based on token type
+                const authHeader = githubToken.startsWith('github_pat_') 
+                    ? 'Bearer ' + githubToken 
+                    : 'token ' + githubToken;
+
+                // First, get the current file to get its SHA (needed for update)
+                const getUrl = 'https://api.github.com/repos/' + githubRepo + '/contents/targets.json';
+                const getResponse = await fetch(getUrl, {
+                    headers: {
+                        'Authorization': authHeader,
+                        'Accept': 'application/vnd.github.v3+json'
+                    }
+                });
+
+                let sha = null;
+                if (getResponse.ok) {
+                    const fileData = await getResponse.json();
+                    sha = fileData.sha;
+                } else if (getResponse.status === 404) {
+                    // File doesn't exist yet, we'll create it
+                    console.log('targets.json does not exist yet, creating new file');
+                } else {
+                    const error = await getResponse.json();
+                    console.error('GitHub GET error:', error);
+                    if (getResponse.status === 401 || getResponse.status === 403) {
+                        showToast('Token lacks permission. For fine-grained tokens, go to GitHub Settings → Developer settings → Personal access tokens → Edit your token → Repository access → Select your repo → Contents: Read and write. Or use a Classic token with "repo" scope.', 'error', 8000);
+                        return;
+                    }
+                }
+
+                // Prepare the content
+                const jsonData = JSON.stringify(targets, null, 2);
+                const content = btoa(unescape(encodeURIComponent(jsonData)));
+
+                // Build request body
+                const requestBody = {
+                    message: 'Update targets list - ' + targets.length + ' targets',
+                    content: content
+                };
+                if (sha) {
+                    requestBody.sha = sha;
+                }
+
+                // Commit the update
+                const putUrl = 'https://api.github.com/repos/' + githubRepo + '/contents/targets.json';
+                const putResponse = await fetch(putUrl, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': authHeader,
+                        'Accept': 'application/vnd.github.v3+json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                if (putResponse.ok) {
+                    showToast('Published! Wait 1-2 minutes for GitHub Pages to update.', 'success');
+                } else {
+                    const error = await putResponse.json();
+                    console.error('GitHub API error:', error);
+                    if (putResponse.status === 401) {
+                        showToast('GitHub token invalid or expired. Check Settings.', 'error');
+                    } else if (putResponse.status === 403) {
+                        showToast('Token lacks write permission. For fine-grained tokens: Edit token → Repository access → Select your repo → Contents: Read and write. For Classic tokens: check "repo" scope.', 'error', 10000);
+                    } else if (putResponse.status === 404) {
+                        showToast('Repo not found. Current repo: ' + githubRepo + '. Change it in Settings if needed.', 'error', 6000);
+                    } else {
+                        showToast('GitHub error: ' + (error.message || putResponse.status), 'error');
+                    }
+                }
+            } catch (err) {
+                console.error('Publish error:', err);
+                showToast('Failed to publish: ' + err.message, 'error');
+            }
+        }
+
+                // ===================== BACKUP / RESTORE =====================
+        function restoreFromLocalStorage() {
+            const saved = localStorage.getItem('tornTargets');
+            if (!saved) {
+                showToast('No backup found in localStorage!', 'warn');
+                return;
+            }
+            try {
+                const parsed = JSON.parse(saved);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    targets = parsed;
+                    targets.forEach(t => {
+                        if (t.ffscouterStats === undefined) t.ffscouterStats = null;
+                        if (t.ffscouterFF === undefined) t.ffscouterFF = null;
+                        if (t.lastUpdated === undefined) t.lastUpdated = null;
+                    });
+                    saveTargets();
+                    render();
+                    updateStats();
+                    showToast('Restored ' + targets.length + ' targets from backup!', 'success');
+                } else {
+                    showToast('Backup is empty!', 'warn');
+                }
+            } catch (e) {
+                showToast('Failed to restore: ' + e.message, 'error');
+            }
+        }
+
+                // ===================== EVENT LISTENERS =====================
+        document.getElementById('searchInput').addEventListener('input', render);
+        document.getElementById('filterFF').addEventListener('change', render);
+        document.getElementById('filterLevel').addEventListener('change', render);
+
+        document.getElementById('loginPassword').addEventListener('keydown', e => {
+            if (e.key === 'Enter') doLogin();
+        });
+
+        document.getElementById('ffscouterKey').addEventListener('keydown', e => {
+            if (e.key === 'Enter') saveSettings();
+        });
+
+        document.getElementById('addForm').addEventListener('keydown', e => {
+            if (e.key === 'Enter') addTarget();
+        });
+
+        document.getElementById('bulkInput').addEventListener('keydown', e => {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                parseBulkInput();
+            }
+        });
+
+        // Init
+        init();
+    </script>
+
+    <!-- Bulk Add Modal -->
+    <div class="modal" id="bulkAddModal">
+        <div class="modal-box" style="max-width:650px; text-align:left; padding:25px;">
+            <h3 style="text-align:center; color:#38bdf8; margin-bottom:15px; font-size:1.3rem;">
+                <span style="margin-right:8px;">📋</span>Bulk Add Targets
+            </h3>
+
+            <div style="background:#0f172a; border:1px solid #334155; border-radius:8px; padding:12px 15px; margin-bottom:15px; font-size:0.82rem; color:#94a3b8; line-height:1.5;">
+                <strong style="color:#38bdf8;">FFScouter table:</strong> Copy the entire table (Ctrl+A, Ctrl+C) and paste here — auto-parses all columns.<br>
+                <strong style="color:#38bdf8;">Other formats:</strong> Torn profile URLs, plain IDs, or <code style="background:#1e293b; padding:2px 6px; border-radius:4px;">Name [ID]</code> format.
+            </div>
+
+            <textarea id="bulkInput" style="width:100%; min-height:140px; background:#0f172a; border:1px solid #475569; color:#e2e8f0; padding:12px; border-radius:8px; font-size:0.9rem; resize:vertical; font-family:'Courier New',monospace;" placeholder="Paste FFScouter table, URLs, or player IDs here...&#10;&#10;Example:&#10;Buggly [4314456]&#10;8  3.03  376  16 days ago"></textarea>
+
+            <div id="bulkPreview" style="margin:15px 0; max-height:250px; overflow-y:auto; background:#0f172a; border:1px solid #334155; border-radius:8px; padding:10px; display:none;"></div>
+
+            <div style="display:flex; gap:12px; justify-content:center; margin-top:15px;">
+                <button class="btn btn-success" onclick="parseBulkInput()" style="background:#0ea5e9;">
+                    <span style="margin-right:5px;">🔍</span>Preview
+                </button>
+                <button class="btn btn-success" onclick="addBulkTargets()" id="bulkAddConfirmBtn" style="display:none; background:#10b981;">
+                    <span style="margin-right:5px;">✓</span>Add All
+                </button>
+                <button class="cancel-btn" onclick="hideBulkAdd()" style="padding:10px 20px; border-radius:8px; font-size:0.9rem;">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        window.onerror = function(msg, url, line, col, error) {
+            var panel = document.getElementById('debugPanel');
+            var msgEl = document.getElementById('debugMsg');
+            if (panel) panel.style.display = 'block';
+            if (msgEl) msgEl.innerHTML = '<strong>JS ERROR:</strong> ' + msg + ' (line ' + line + ')';
+            return false;
+        };
+        // Also catch unhandled promise rejections
+        window.addEventListener('unhandledrejection', function(event) {
+            var panel = document.getElementById('debugPanel');
+            var msgEl = document.getElementById('debugMsg');
+            if (panel) panel.style.display = 'block';
+            if (msgEl) msgEl.innerHTML = '<strong>Promise Error:</strong> ' + event.reason;
+        });
+    </script>
+    </body>
+</html>
