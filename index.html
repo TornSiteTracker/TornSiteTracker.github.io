@@ -874,6 +874,8 @@
             let totalUpdated = 0;
             let totalNoData = 0;
             let totalErrors = 0;
+            let totalNotFound = 0;
+            let debugResponse = null;
 
             for (let batchIdx = 0; batchIdx < batches.length; batchIdx++) {
                 const batch = batches[batchIdx];
@@ -883,10 +885,16 @@
 
                 try {
                     const url = `${FFSCOUTER_API_BASE}/get-stats?key=${encodeURIComponent(ffscouterKey)}&targets=${targetIdsStr}`;
+                    console.log('FFScouter API URL:', url.replace(ffscouterKey, ffscouterKey.substring(0,4)+'****'+ffscouterKey.substring(12)));
+
                     const response = await fetch(url, { method: 'GET' });
+                    console.log('Response status:', response.status);
 
                     if (!response.ok) {
-                        const errData = await response.json().catch(() => ({}));
+                        const errText = await response.text();
+                        console.log('Error response body:', errText);
+                        let errData = {};
+                        try { errData = JSON.parse(errText); } catch(e) {}
                         const errMsg = errData.error || `HTTP ${response.status}`;
                         if (errData.code) {
                             showToast(`FFScouter error [${errData.code}]: ${errMsg}`, 'error');
@@ -898,31 +906,67 @@
                     }
 
                     const data = await response.json();
+                    console.log('FFScouter raw response:', JSON.stringify(data, null, 2));
+                    debugResponse = data;
 
                     if (Array.isArray(data)) {
-                        data.forEach(playerData => {
+                        console.log(`Received ${data.length} player objects`);
+
+                        if (data.length === 0) {
+                            console.log('WARNING: Empty array returned - no players found at all');
+                            totalErrors++;
+                            continue;
+                        }
+
+                        data.forEach((playerData, idx) => {
+                            console.log(`Player ${idx}:`, JSON.stringify(playerData));
                             const pid = String(playerData.player_id);
                             const target = targets.find(t => t.id === pid);
-                            if (target) {
-                                if (playerData.bs_estimate !== null && playerData.bs_estimate !== undefined) {
-                                    target.ffscouterStats = playerData.bs_estimate;
-                                    target.ffscouterStatsHuman = playerData.bs_estimate_human || null;
-                                    target.ffscouterFF = playerData.fair_fight;
-                                    target.lastUpdated = playerData.last_updated ? new Date(playerData.last_updated * 1000).toISOString() : null;
-                                    target.source = playerData.source || 'bss';
-                                    target.premiumInsights = playerData.premium_insights_available || false;
-                                    target.distribution = playerData.distribution || null;
-                                    totalUpdated++;
-                                } else {
-                                    totalNoData++;
-                                }
+
+                            if (!target) {
+                                console.log(`Player ${pid} not found in target list`);
+                                totalNotFound++;
+                                return;
+                            }
+
+                            console.log(`Found target ${target.name} (ID: ${pid})`);
+                            console.log(`  bs_estimate:`, playerData.bs_estimate, `type:`, typeof playerData.bs_estimate);
+                            console.log(`  fair_fight:`, playerData.fair_fight);
+                            console.log(`  last_updated:`, playerData.last_updated);
+                            console.log(`  source:`, playerData.source);
+
+                            // Check if bs_estimate exists and is a number (not null, not undefined)
+                            if (playerData.bs_estimate !== null && playerData.bs_estimate !== undefined && !isNaN(playerData.bs_estimate)) {
+                                target.ffscouterStats = Number(playerData.bs_estimate);
+                                target.ffscouterStatsHuman = playerData.bs_estimate_human || null;
+                                target.ffscouterFF = playerData.fair_fight;
+                                target.lastUpdated = playerData.last_updated ? new Date(playerData.last_updated * 1000).toISOString() : null;
+                                target.source = playerData.source || 'bss';
+                                target.premiumInsights = playerData.premium_insights_available || false;
+                                target.distribution = playerData.distribution || null;
+                                totalUpdated++;
+                                console.log(`  -> UPDATED successfully`);
+                            } else {
+                                totalNoData++;
+                                console.log(`  -> NO DATA (bs_estimate is null/undefined/NaN)`);
                             }
                         });
-                    } else if (data.error) {
-                        showToast(`FFScouter error: ${data.error}`, 'error');
+                    } else if (data && typeof data === 'object') {
+                        console.log('Response is object, not array:', data);
+                        if (data.error) {
+                            showToast(`FFScouter error: ${data.error}`, 'error');
+                            totalErrors++;
+                        } else {
+                            showToast('Unexpected response format from FFScouter', 'error');
+                            totalErrors++;
+                        }
+                    } else {
+                        console.log('Unexpected response type:', typeof data, data);
+                        showToast('Unexpected response from FFScouter', 'error');
                         totalErrors++;
                     }
                 } catch (err) {
+                    console.error('Network/parse error:', err);
                     showToast(`Network error (batch ${batchIdx + 1}): ${err.message}`, 'error');
                     totalErrors++;
                 }
@@ -934,6 +978,14 @@
                 }
             }
 
+            console.log('=== REFRESH SUMMARY ===');
+            console.log('Total targets:', targets.length);
+            console.log('Updated:', totalUpdated);
+            console.log('No data:', totalNoData);
+            console.log('Not found in response:', totalNotFound);
+            console.log('Errors:', totalErrors);
+            console.log('Sample response:', debugResponse ? JSON.stringify(debugResponse[0]) : 'none');
+
             saveTargets();
             render();
             updateStats();
@@ -942,6 +994,8 @@
                 showToast(`Updated ${totalUpdated} targets from FFScouter (${totalNoData} no data, ${totalErrors} errors)`, 'success');
             } else if (totalErrors > 0) {
                 showToast(`Refresh failed: ${totalErrors} error(s), ${totalNoData} no data`, 'error');
+            } else if (totalNotFound > 0) {
+                showToast(`No matching targets found in FFScouter response (${totalNotFound} IDs not found)`, 'warn');
             } else {
                 showToast('No FFScouter data found for any targets. They may not be in the database yet.', 'warn');
             }
