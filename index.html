@@ -1349,8 +1349,10 @@
         function showBulkAdd() {
             if (!isAdmin) return;
             document.getElementById('bulkInput').value = '';
-            document.getElementById('bulkPreview').innerHTML = '';
-            document.getElementById('bulkAddBtn').style.display = 'none';
+            const previewDiv = document.getElementById('bulkPreview');
+            previewDiv.innerHTML = '';
+            previewDiv.style.display = 'none';
+            document.getElementById('bulkAddConfirmBtn').style.display = 'none';
             parsedBulkTargets = [];
             document.getElementById('bulkAddModal').classList.add('active');
             document.getElementById('bulkInput').focus();
@@ -1477,32 +1479,50 @@
             }
 
             if (parsedBulkTargets.length === 0) {
-                document.getElementById('bulkPreview').innerHTML = '<span style="color:#ef4444;">No player IDs found. Try pasting Torn profile URLs, IDs, or FFScouter table data.</span>';
-                document.getElementById('bulkAddBtn').style.display = 'none';
+                const previewDiv = document.getElementById('bulkPreview');
+                previewDiv.innerHTML = '<span style="color:#ef4444; display:block; padding:8px;">❌ No player IDs found. Try pasting Torn profile URLs, IDs, or FFScouter table data.</span>';
+                previewDiv.style.display = 'block';
+                document.getElementById('bulkAddConfirmBtn').style.display = 'none';
                 return;
             }
 
-            let preview = '<strong>Found ' + parsedBulkTargets.length + ' player(s):</strong><br>';
-            preview += '<table style="width:100%; font-size:0.8rem; margin-top:8px; border-collapse:collapse;">';
-            preview += '<tr style="color:#94a3b8; text-align:left;"><th style="padding:3px 6px;">Name</th><th style="padding:3px 6px;">ID</th><th style="padding:3px 6px;">Lvl</th><th style="padding:3px 6px;">FF</th><th style="padding:3px 6px;">Stats</th><th style="padding:3px 6px;">Inactive</th></tr>';
+            let preview = '<div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">' +
+                '<span style="background:#064e3b; color:#22c55e; padding:3px 10px; border-radius:20px; font-size:0.8rem; font-weight:600;">' + parsedBulkTargets.length + ' found</span>' +
+                '<span style="color:#64748b; font-size:0.8rem;">Ready to import</span>' +
+                '</div>';
+            preview += '<table style="width:100%; font-size:0.82rem; border-collapse:collapse;">';
+            preview += '<thead><tr style="color:#94a3b8; text-align:left; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.5px;">' +
+                '<th style="padding:6px 8px;">Player</th>' +
+                '<th style="padding:6px 8px; text-align:center;">Lvl</th>' +
+                '<th style="padding:6px 8px; text-align:center;">FF</th>' +
+                '<th style="padding:6px 8px; text-align:right;">Stats</th>' +
+                '<th style="padding:6px 8px; text-align:right;">Inactive</th>' +
+                '</tr></thead><tbody>';
 
-            parsedBulkTargets.slice(0, 8).forEach(t => {
-                preview += '<tr style="border-top:1px solid #334155;">' +
-                    '<td style="padding:3px 6px;">' + escapeHtml(t.name || 'Unknown') + '</td>' +
-                    '<td style="padding:3px 6px;">' + t.id + '</td>' +
-                    '<td style="padding:3px 6px;">' + (t.level || '?') + '</td>' +
-                    '<td style="padding:3px 6px;">' + (t.ff || '?') + '</td>' +
-                    '<td style="padding:3px 6px;">' + (t.stats || '?') + '</td>' +
-                    '<td style="padding:3px 6px;">' + escapeHtml(t.inactive || '?') + '</td>' +
+            parsedBulkTargets.slice(0, 10).forEach(t => {
+                const nameColor = t.source === 'ffscouter' ? '#38bdf8' : '#e2e8f0';
+                preview += '<tr style="border-top:1px solid #1e293b;">' +
+                    '<td style="padding:6px 8px;">' +
+                        '<div style="display:flex; flex-direction:column;">' +
+                            '<span style="color:' + nameColor + '; font-weight:600;">' + escapeHtml(t.name || 'Unknown') + '</span>' +
+                            '<span style="color:#64748b; font-size:0.75rem;">[' + t.id + ']</span>' +
+                        '</div>' +
+                    '</td>' +
+                    '<td style="padding:6px 8px; text-align:center;"><span style="background:#0f172a; border:1px solid #334155; padding:2px 8px; border-radius:12px; font-size:0.8rem;">' + (t.level || '?') + '</span></td>' +
+                    '<td style="padding:6px 8px; text-align:center;"><span style="color:#f59e0b; font-weight:600;">' + (t.ff || '?') + '</span></td>' +
+                    '<td style="padding:6px 8px; text-align:right; font-family:monospace;">' + (t.stats ? t.stats.toLocaleString() : '?') + '</td>' +
+                    '<td style="padding:6px 8px; text-align:right; color:#94a3b8;">' + escapeHtml(t.inactive || '?') + '</td>' +
                 '</tr>';
             });
-            if (parsedBulkTargets.length > 8) {
-                preview += '<tr><td colspan="6" style="padding:3px 6px; color:#64748b;">... and ' + (parsedBulkTargets.length - 8) + ' more</td></tr>';
+            if (parsedBulkTargets.length > 10) {
+                preview += '<tr><td colspan="5" style="padding:8px; color:#64748b; text-align:center; font-size:0.8rem;">... and ' + (parsedBulkTargets.length - 10) + ' more</td></tr>';
             }
-            preview += '</table>';
+            preview += '</tbody></table>';
 
-            document.getElementById('bulkPreview').innerHTML = preview;
-            document.getElementById('bulkAddBtn').style.display = 'inline-flex';
+            const previewDiv = document.getElementById('bulkPreview');
+            previewDiv.innerHTML = preview;
+            previewDiv.style.display = 'block';
+            document.getElementById('bulkAddConfirmBtn').style.display = 'inline-flex';
 
             showToast('Found ' + parsedBulkTargets.length + ' player IDs', 'success');
         }
@@ -1606,25 +1626,28 @@
 
     <!-- Bulk Add Modal -->
     <div class="modal" id="bulkAddModal">
-        <div class="modal-box" style="max-width:600px; text-align:left;">
-            <h3 style="text-align:center;">Bulk Add Targets</h3>
-            <div class="info-text">
-                Paste Torn profile URLs, player IDs, or copy-paste from Torn/FFScouter pages. The tracker will extract all player data automatically.
-                <br><br>
-                <strong>FFScouter table format:</strong><br>
-                • Copy the entire table from FFScouter (Ctrl+A, Ctrl+C)<br>
-                • Paste here — it auto-parses Name, ID, Level, FF, Stats, Inactive<br><br>
-                <strong>Other formats:</strong><br>
-                • https://www.torn.com/profiles.php?XID=4277486<br>
-                • 4277486, 4162677, 4282695<br>
-                • Alonzo4267 [4277486]
+        <div class="modal-box" style="max-width:650px; text-align:left; padding:25px;">
+            <h3 style="text-align:center; color:#38bdf8; margin-bottom:15px; font-size:1.3rem;">
+                <span style="margin-right:8px;">📋</span>Bulk Add Targets
+            </h3>
+
+            <div style="background:#0f172a; border:1px solid #334155; border-radius:8px; padding:12px 15px; margin-bottom:15px; font-size:0.82rem; color:#94a3b8; line-height:1.5;">
+                <strong style="color:#38bdf8;">FFScouter table:</strong> Copy the entire table (Ctrl+A, Ctrl+C) and paste here — auto-parses all columns.<br>
+                <strong style="color:#38bdf8;">Other formats:</strong> Torn profile URLs, plain IDs, or <code style="background:#1e293b; padding:2px 6px; border-radius:4px;">Name [ID]</code> format.
             </div>
-            <textarea id="bulkInput" style="width:100%; min-height:120px; background:#0f172a; border:1px solid #475569; color:#e2e8f0; padding:12px; border-radius:8px; font-size:0.9rem; resize:vertical;" placeholder="Paste FFScouter table, URLs, or IDs here..."></textarea>
-            <div id="bulkPreview" style="margin:10px 0; max-height:200px; overflow-y:auto; font-size:0.85rem; color:#94a3b8;"></div>
-            <div style="display:flex; gap:10px; justify-content:center;">
-                <button class="btn btn-success" onclick="parseBulkInput()">Preview</button>
-                <button class="btn btn-success" onclick="addBulkTargets()" id="bulkAddBtn" style="display:none;">Add All</button>
-                <button class="cancel-btn" onclick="hideBulkAdd()">Cancel</button>
+
+            <textarea id="bulkInput" style="width:100%; min-height:140px; background:#0f172a; border:1px solid #475569; color:#e2e8f0; padding:12px; border-radius:8px; font-size:0.9rem; resize:vertical; font-family:'Courier New',monospace;" placeholder="Paste FFScouter table, URLs, or player IDs here...&#10;&#10;Example:&#10;Buggly [4314456]&#10;8  3.03  376  16 days ago"></textarea>
+
+            <div id="bulkPreview" style="margin:15px 0; max-height:250px; overflow-y:auto; background:#0f172a; border:1px solid #334155; border-radius:8px; padding:10px; display:none;"></div>
+
+            <div style="display:flex; gap:12px; justify-content:center; margin-top:15px;">
+                <button class="btn btn-success" onclick="parseBulkInput()" style="background:#0ea5e9;">
+                    <span style="margin-right:5px;">🔍</span>Preview
+                </button>
+                <button class="btn btn-success" onclick="addBulkTargets()" id="bulkAddConfirmBtn" style="display:none; background:#10b981;">
+                    <span style="margin-right:5px;">✓</span>Add All
+                </button>
+                <button class="cancel-btn" onclick="hideBulkAdd()" style="padding:10px 20px; border-radius:8px; font-size:0.9rem;">Cancel</button>
             </div>
         </div>
     </div>
