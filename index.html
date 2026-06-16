@@ -541,6 +541,7 @@
             <button class="btn btn-success admin-only" id="bulkAddBtn" onclick="showBulkAdd()" style="background:#10b981;">Bulk Add</button>
             <button class="btn btn-secondary" onclick="exportData()">Export</button>
             <button class="btn btn-admin admin-only" id="publishBtn" onclick="publishSharedList()" style="background:#ec4899;">📤 Publish</button>
+            <button class="btn btn-admin admin-only" onclick="loadDefaults()" style="background:#6366f1;">🔄 Defaults</button>
             <button class="btn btn-refresh admin-only" id="refreshBtn" onclick="refreshFromFFScouter()">Refresh Stats</button>
             <button class="btn btn-settings admin-only" id="settingsBtn" onclick="showSettings()">Settings</button>
             <button class="btn btn-danger admin-only" id="clearAllBtn" onclick="clearAll()">Clear All</button>
@@ -647,7 +648,12 @@
                 <strong style="color:#38bdf8;">GitHub Token</strong> — optional, for auto-publishing the shared list. Create at GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic) → repo scope.
             </div>
             <div class="key-status" id="githubTokenStatus"></div>
-            <input type="password" id="githubToken" placeholder="ghp_xxxxxxxxxxxx" style="margin-bottom:15px;">
+            <input type="password" id="githubToken" placeholder="ghp_xxxxxxxxxxxx or github_pat_..." style="margin-bottom:15px;">
+
+            <div class="info-text" style="margin-bottom:8px;">
+                <strong style="color:#38bdf8;">GitHub Repo</strong> — format: username/repo-name (e.g., tornsitetracker/tornsitetracker.github.io)
+            </div>
+            <input type="text" id="githubRepo" placeholder="username/repo-name" style="margin-bottom:15px;">
 
             <button class="btn btn-success" onclick="saveSettings()">Save Keys</button>
             <button class="btn btn-danger" onclick="clearSettings()">Clear Keys</button>
@@ -744,6 +750,9 @@
                         console.log('Loaded ' + targets.length + ' targets from shared targets.json');
                         // Save to localStorage so it works offline too
                         saveTargets();
+                    } else if (Array.isArray(sharedData) && sharedData.length === 0) {
+                        console.log('Shared targets.json is empty, using defaults');
+                        throw new Error('Empty shared data');
                     } else {
                         throw new Error('Invalid shared data');
                     }
@@ -761,7 +770,7 @@
                 if (saved) {
                     try {
                         const parsed = JSON.parse(saved);
-                        if (Array.isArray(parsed)) {
+                        if (Array.isArray(parsed) && parsed.length > 0) {
                             targets = parsed;
                             targets.forEach(t => {
                                 if (t.ffscouterStats === undefined) t.ffscouterStats = null;
@@ -770,6 +779,7 @@
                             });
                             console.log('Loaded ' + targets.length + ' targets from localStorage');
                         } else {
+                            console.log('localStorage data is empty or invalid, using defaults');
                             targets = JSON.parse(JSON.stringify(defaultTargets));
                             saveTargets();
                         }
@@ -788,7 +798,7 @@
             ffscouterKey = localStorage.getItem('tornFFScouterKey') || '';
             tornApiKey = localStorage.getItem('tornApiKey') || '';
             githubToken = localStorage.getItem('githubToken') || '';
-            githubRepo = localStorage.getItem('githubRepo') || githubRepo;
+            githubRepo = localStorage.getItem('githubRepo') || 'tornsitetracker/tornsitetracker.github.io';
 
             const adminSession = localStorage.getItem('tornAdmin');
             if (adminSession === 'true') {
@@ -899,7 +909,9 @@
 
             const githubInput = document.getElementById('githubToken');
             const githubStatusDiv = document.getElementById('githubTokenStatus');
+            const githubRepoInput = document.getElementById('githubRepo');
             githubInput.value = githubToken;
+            githubRepoInput.value = githubRepo;
 
             if (githubToken && githubToken.length > 30) {
                 githubStatusDiv.className = 'key-status saved';
@@ -941,6 +953,11 @@
                 githubToken = ghToken;
                 localStorage.setItem('githubToken', ghToken);
             }
+            const ghRepo = document.getElementById('githubRepo').value.trim();
+            if (ghRepo) {
+                githubRepo = ghRepo;
+                localStorage.setItem('githubRepo', ghRepo);
+            }
             showToast('Settings saved!', 'success');
             hideSettings();
         }
@@ -949,12 +966,15 @@
             ffscouterKey = '';
             tornApiKey = '';
             githubToken = '';
+            githubRepo = 'tornsitetracker/tornsitetracker.github.io';
             localStorage.removeItem('tornFFScouterKey');
             localStorage.removeItem('tornApiKey');
             localStorage.removeItem('githubToken');
+            localStorage.removeItem('githubRepo');
             document.getElementById('ffscouterKey').value = '';
             document.getElementById('tornApiKey').value = '';
             document.getElementById('githubToken').value = '';
+            document.getElementById('githubRepo').value = '';
             document.getElementById('keyStatus').className = 'key-status none';
             document.getElementById('keyStatus').textContent = 'No FFScouter key saved';
             document.getElementById('tornKeyStatus').className = 'key-status none';
@@ -1680,7 +1700,17 @@
         }
 
 
-        // ===================== SHARED LIST PUBLISH =====================
+
+        function loadDefaults() {
+            if (!isAdmin) return;
+            targets = JSON.parse(JSON.stringify(defaultTargets));
+            saveTargets();
+            render();
+            updateStats();
+            showToast('Loaded ' + targets.length + ' default targets', 'success');
+        }
+
+                // ===================== SHARED LIST PUBLISH =====================
         async function publishSharedList() {
             if (!isAdmin) return;
             if (targets.length === 0) {
@@ -1697,11 +1727,16 @@
             showToast('Publishing to GitHub...', 'info');
 
             try {
+                // Determine auth header based on token type
+                const authHeader = githubToken.startsWith('github_pat_') 
+                    ? 'Bearer ' + githubToken 
+                    : 'token ' + githubToken;
+
                 // First, get the current file to get its SHA (needed for update)
                 const getUrl = 'https://api.github.com/repos/' + githubRepo + '/contents/targets.json';
                 const getResponse = await fetch(getUrl, {
                     headers: {
-                        'Authorization': 'token ' + githubToken,
+                        'Authorization': authHeader,
                         'Accept': 'application/vnd.github.v3+json'
                     }
                 });
@@ -1710,26 +1745,41 @@
                 if (getResponse.ok) {
                     const fileData = await getResponse.json();
                     sha = fileData.sha;
+                } else if (getResponse.status === 404) {
+                    // File doesn't exist yet, we'll create it
+                    console.log('targets.json does not exist yet, creating new file');
+                } else {
+                    const error = await getResponse.json();
+                    console.error('GitHub GET error:', error);
+                    if (getResponse.status === 401 || getResponse.status === 403) {
+                        showToast('Token lacks permission. For fine-grained tokens, go to GitHub Settings → Developer settings → Personal access tokens → Edit your token → Repository access → Select your repo → Contents: Read and write. Or use a Classic token with "repo" scope.', 'error', 8000);
+                        return;
+                    }
                 }
 
                 // Prepare the content
                 const jsonData = JSON.stringify(targets, null, 2);
-                const content = btoa(unescape(encodeURIComponent(jsonData))); // Base64 encode
+                const content = btoa(unescape(encodeURIComponent(jsonData)));
+
+                // Build request body
+                const requestBody = {
+                    message: 'Update targets list - ' + targets.length + ' targets',
+                    content: content
+                };
+                if (sha) {
+                    requestBody.sha = sha;
+                }
 
                 // Commit the update
                 const putUrl = 'https://api.github.com/repos/' + githubRepo + '/contents/targets.json';
                 const putResponse = await fetch(putUrl, {
                     method: 'PUT',
                     headers: {
-                        'Authorization': 'token ' + githubToken,
+                        'Authorization': authHeader,
                         'Accept': 'application/vnd.github.v3+json',
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({
-                        message: 'Update targets list - ' + targets.length + ' targets',
-                        content: content,
-                        sha: sha
-                    })
+                    body: JSON.stringify(requestBody)
                 });
 
                 if (putResponse.ok) {
@@ -1739,8 +1789,10 @@
                     console.error('GitHub API error:', error);
                     if (putResponse.status === 401) {
                         showToast('GitHub token invalid or expired. Check Settings.', 'error');
+                    } else if (putResponse.status === 403) {
+                        showToast('Token lacks write permission. For fine-grained tokens: Edit token → Repository access → Select your repo → Contents: Read and write. For Classic tokens: check "repo" scope.', 'error', 10000);
                     } else if (putResponse.status === 404) {
-                        showToast('Repo not found. Check the repo name in the code.', 'error');
+                        showToast('Repo not found. Current repo: ' + githubRepo + '. Change it in Settings if needed.', 'error', 6000);
                     } else {
                         showToast('GitHub error: ' + (error.message || putResponse.status), 'error');
                     }
