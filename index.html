@@ -724,6 +724,7 @@
         let isAdmin = false;
         let ffscouterKey = '';
         let tornApiKey = '';
+        let parsedBulkTargets = [];
 
         // ===================== INIT =====================
         function init() {
@@ -898,7 +899,6 @@
 
             showToast('Fetching stats from FFScouter...', 'info');
 
-            // Batch target IDs (max 205 per request)
             const BATCH_SIZE = 205;
             const allTargetIds = targets.map(t => t.id);
             const batches = [];
@@ -948,7 +948,7 @@
                         console.log(`Received ${data.length} player objects`);
 
                         if (data.length === 0) {
-                            console.log('WARNING: Empty array returned - no players found at all');
+                            console.log('WARNING: Empty array returned');
                             totalErrors++;
                             continue;
                         }
@@ -970,7 +970,6 @@
                             console.log(`  last_updated:`, playerData.last_updated);
                             console.log(`  source:`, playerData.source);
 
-                            // Check if bs_estimate exists and is a number (not null, not undefined)
                             if (playerData.bs_estimate !== null && playerData.bs_estimate !== undefined && !isNaN(playerData.bs_estimate)) {
                                 target.ffscouterStats = Number(playerData.bs_estimate);
                                 target.ffscouterStatsHuman = playerData.bs_estimate_human || null;
@@ -1006,7 +1005,6 @@
                     totalErrors++;
                 }
 
-                // Rate limit: 20 req/min = 3 sec between requests, use 4 sec to be safe
                 if (batchIdx < batches.length - 1) {
                     showToast(`Waiting for rate limit... batch ${batchIdx + 1}/${batches.length}`, 'info');
                     await new Promise(r => setTimeout(r, 4000));
@@ -1019,7 +1017,6 @@
             console.log('No data:', totalNoData);
             console.log('Not found in response:', totalNotFound);
             console.log('Errors:', totalErrors);
-            console.log('Sample response:', debugResponse ? JSON.stringify(debugResponse[0]) : 'none');
 
             saveTargets();
             render();
@@ -1042,7 +1039,7 @@
             }, 500);
         }
 
-        // ===================== RENDER =====================
+                // ===================== RENDER =====================
         function render() {
             const search = document.getElementById('searchInput').value.toLowerCase();
             const ffFilter = document.getElementById('filterFF').value;
@@ -1090,7 +1087,6 @@
 
                 let statsDisplay = '';
                 let statsClass = 'stats-value';
-                let statsTooltip = '';
                 if (t.ffscouterStats !== null && t.ffscouterStats !== undefined) {
                     const daysOld = t.lastUpdated ? (Date.now() - new Date(t.lastUpdated).getTime()) / (1000 * 60 * 60 * 24) : 999;
                     if (daysOld < 7) {
@@ -1100,14 +1096,7 @@
                     } else {
                         statsClass = 'stats-value stats-old';
                     }
-                    const humanReadable = t.ffscouterStatsHuman || t.ffscouterStats.toLocaleString();
-                    const sourceBadge = t.source === 'premium' ? '<span style="color:#a855f7;font-size:0.7rem;">★</span>' : '';
-                    statsDisplay = humanReadable + ' ' + sourceBadge;
-
-                    // Build tooltip with distribution if available
-                    if (t.distribution && t.distribution.distribution_human) {
-                        statsTooltip = `title="${t.distribution.distribution_human}"`;
-                    }
+                    statsDisplay = t.ffscouterStats.toLocaleString();
                 } else {
                     statsClass = 'stats-value stats-na';
                     statsDisplay = t.stats ? t.stats.toLocaleString() : 'N/A';
@@ -1143,7 +1132,7 @@
                     </td>
                     <td><span class="level-badge">${t.level}</span></td>
                     <td><span class="ff-badge ff-${Math.round(t.ffscouterFF || t.ff)}">${(t.ffscouterFF || t.ff).toFixed ? (t.ffscouterFF || t.ff).toFixed(2) : (t.ffscouterFF || t.ff)}</span></td>
-                    <td><span class="${statsClass}" ${statsTooltip}>${statsDisplay}</span></td>
+                    <td><span class="${statsClass}">${statsDisplay}</span></td>
                     <td><span class="inactive ${inactiveClass}">${escapeHtml(t.inactive)}</span></td>
                     <td>${infoDisplay}</td>
                     ${actionsCell}
@@ -1359,8 +1348,6 @@
 
 
         // ===================== BULK ADD =====================
-        let parsedBulkTargets = [];
-
         function showBulkAdd() {
             if (!isAdmin) return;
             document.getElementById('bulkInput').value = '';
@@ -1528,7 +1515,6 @@
             if (!isAdmin || parsedBulkTargets.length === 0) return;
 
             let added = 0;
-            let skipped = 0;
             let updated = 0;
 
             const needsApiFetch = parsedBulkTargets.some(t => !t.name || !t.level);
@@ -1595,7 +1581,8 @@
                 showToast('All targets already existed', 'info');
             }
         }
-        // ===================== EVENT LISTENERS =====================
+
+                // ===================== EVENT LISTENERS =====================
         document.getElementById('searchInput').addEventListener('input', render);
         document.getElementById('filterFF').addEventListener('change', render);
         document.getElementById('filterLevel').addEventListener('change', render);
@@ -1627,16 +1614,18 @@
         <div class="modal-box" style="max-width:600px; text-align:left;">
             <h3 style="text-align:center;">Bulk Add Targets</h3>
             <div class="info-text">
-                Paste Torn profile URLs, player IDs, or copy-paste from Torn pages. The tracker will extract all player IDs automatically.
+                Paste Torn profile URLs, player IDs, or copy-paste from Torn/FFScouter pages. The tracker will extract all player data automatically.
                 <br><br>
-                <strong>Examples:</strong><br>
+                <strong>FFScouter table format:</strong><br>
+                • Copy the entire table from FFScouter (Ctrl+A, Ctrl+C)<br>
+                • Paste here — it auto-parses Name, ID, Level, FF, Stats, Inactive<br><br>
+                <strong>Other formats:</strong><br>
                 • https://www.torn.com/profiles.php?XID=4277486<br>
                 • 4277486, 4162677, 4282695<br>
-                • Alonzo4267 [4277486]<br>
-                • Copy-paste from attack log or enemy list
+                • Alonzo4267 [4277486]
             </div>
-            <textarea id="bulkInput" style="width:100%; min-height:120px; background:#0f172a; border:1px solid #475569; color:#e2e8f0; padding:12px; border-radius:8px; font-size:0.9rem; resize:vertical;" placeholder="Paste URLs, IDs, or Torn page text here..."></textarea>
-            <div id="bulkPreview" style="margin:10px 0; max-height:150px; overflow-y:auto; font-size:0.85rem; color:#94a3b8;"></div>
+            <textarea id="bulkInput" style="width:100%; min-height:120px; background:#0f172a; border:1px solid #475569; color:#e2e8f0; padding:12px; border-radius:8px; font-size:0.9rem; resize:vertical;" placeholder="Paste FFScouter table, URLs, or IDs here..."></textarea>
+            <div id="bulkPreview" style="margin:10px 0; max-height:200px; overflow-y:auto; font-size:0.85rem; color:#94a3b8;"></div>
             <div style="display:flex; gap:10px; justify-content:center;">
                 <button class="btn btn-success" onclick="parseBulkInput()">Preview</button>
                 <button class="btn btn-success" onclick="addBulkTargets()" id="bulkAddBtn" style="display:none;">Add All</button>
