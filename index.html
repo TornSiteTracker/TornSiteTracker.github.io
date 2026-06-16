@@ -538,6 +538,7 @@
                 <option value="100">Level 100</option>
             </select>
             <button class="btn btn-success admin-only" id="addTargetBtn" onclick="toggleAddForm()">Add Target</button>
+            <button class="btn btn-success admin-only" id="bulkAddBtn" onclick="showBulkAdd()" style="background:#10b981;">Bulk Add</button>
             <button class="btn btn-secondary" onclick="exportData()">Export</button>
             <button class="btn btn-refresh admin-only" id="refreshBtn" onclick="refreshFromFFScouter()">Refresh Stats</button>
             <button class="btn btn-settings admin-only" id="settingsBtn" onclick="showSettings()">Settings</button>
@@ -626,15 +627,23 @@
 
     <!-- Settings Modal -->
     <div class="modal" id="settingsModal">
-        <div class="modal-box">
-            <h3>FFScouter Settings</h3>
-            <div class="info-text">
-                Enter your FFScouter API key to enable stat refreshing. Get your free key at <a href="https://ffscouter.com" target="_blank" style="color:#38bdf8;">ffscouter.com</a>
+        <div class="modal-box" style="max-width:500px;">
+            <h3>API Settings</h3>
+
+            <div class="info-text" style="margin-bottom:8px;">
+                <strong style="color:#38bdf8;">FFScouter API Key</strong> — for battle stats & fair fight. Get your key at <a href="https://ffscouter.com" target="_blank" style="color:#38bdf8;">ffscouter.com</a>
             </div>
             <div class="key-status" id="keyStatus"></div>
-            <input type="text" id="ffscouterKey" placeholder="Paste your 16-char FFScouter API key..." maxlength="16">
-            <button class="btn btn-success" onclick="saveSettings()">Save Key</button>
-            <button class="btn btn-danger" onclick="clearSettings()">Clear Key</button>
+            <input type="text" id="ffscouterKey" placeholder="Paste your 16-char FFScouter API key..." maxlength="16" style="margin-bottom:15px;">
+
+            <div class="info-text" style="margin-bottom:8px;">
+                <strong style="color:#38bdf8;">Torn API Key</strong> — optional, for auto-fetching names/levels when adding targets. Create a Public Access key in Torn Settings → API Keys.
+            </div>
+            <div class="key-status" id="tornKeyStatus"></div>
+            <input type="text" id="tornApiKey" placeholder="Paste your Torn API key..." style="margin-bottom:15px;">
+
+            <button class="btn btn-success" onclick="saveSettings()">Save Keys</button>
+            <button class="btn btn-danger" onclick="clearSettings()">Clear Keys</button>
             <button class="cancel-btn" onclick="hideSettings()">Cancel</button>
         </div>
     </div>
@@ -714,6 +723,7 @@
         let editIndex = -1;
         let isAdmin = false;
         let ffscouterKey = '';
+        let tornApiKey = '';
 
         // ===================== INIT =====================
         function init() {
@@ -731,6 +741,7 @@
             }
 
             ffscouterKey = localStorage.getItem('tornFFScouterKey') || '';
+            tornApiKey = localStorage.getItem('tornApiKey') || '';
 
             const adminSession = localStorage.getItem('tornAdmin');
             if (adminSession === 'true') {
@@ -807,15 +818,26 @@
             if (!isAdmin) return;
             const keyInput = document.getElementById('ffscouterKey');
             const statusDiv = document.getElementById('keyStatus');
+            const tornInput = document.getElementById('tornApiKey');
+            const tornStatusDiv = document.getElementById('tornKeyStatus');
 
             keyInput.value = ffscouterKey;
+            tornInput.value = tornApiKey;
 
             if (ffscouterKey && ffscouterKey.length === 16) {
                 statusDiv.className = 'key-status saved';
-                statusDiv.textContent = 'API key saved (' + ffscouterKey.substring(0, 4) + '****' + ffscouterKey.substring(12) + ')';
+                statusDiv.textContent = 'FFScouter key saved (' + ffscouterKey.substring(0, 4) + '****' + ffscouterKey.substring(12) + ')';
             } else {
                 statusDiv.className = 'key-status none';
-                statusDiv.textContent = 'No API key saved. Get one at ffscouter.com';
+                statusDiv.textContent = 'No FFScouter key saved';
+            }
+
+            if (tornApiKey && tornApiKey.length > 10) {
+                tornStatusDiv.className = 'key-status saved';
+                tornStatusDiv.textContent = 'Torn API key saved (' + tornApiKey.substring(0, 4) + '****' + tornApiKey.substring(tornApiKey.length-4) + ')';
+            } else {
+                tornStatusDiv.className = 'key-status none';
+                tornStatusDiv.textContent = 'No Torn API key saved (optional)';
             }
 
             document.getElementById('settingsModal').classList.add('active');
@@ -828,23 +850,36 @@
 
         function saveSettings() {
             const key = document.getElementById('ffscouterKey').value.trim();
-            if (key.length !== 16) {
-                showToast('API key must be exactly 16 characters!', 'error');
+            const tornKey = document.getElementById('tornApiKey').value.trim();
+
+            if (key && key.length !== 16) {
+                showToast('FFScouter key must be exactly 16 characters!', 'error');
                 return;
             }
-            ffscouterKey = key;
-            localStorage.setItem('tornFFScouterKey', key);
-            showToast('FFScouter API key saved!', 'success');
+            if (key) {
+                ffscouterKey = key;
+                localStorage.setItem('tornFFScouterKey', key);
+            }
+            if (tornKey) {
+                tornApiKey = tornKey;
+                localStorage.setItem('tornApiKey', tornKey);
+            }
+            showToast('Settings saved!', 'success');
             hideSettings();
         }
 
         function clearSettings() {
             ffscouterKey = '';
+            tornApiKey = '';
             localStorage.removeItem('tornFFScouterKey');
+            localStorage.removeItem('tornApiKey');
             document.getElementById('ffscouterKey').value = '';
+            document.getElementById('tornApiKey').value = '';
             document.getElementById('keyStatus').className = 'key-status none';
-            document.getElementById('keyStatus').textContent = 'No API key saved';
-            showToast('API key cleared', 'info');
+            document.getElementById('keyStatus').textContent = 'No FFScouter key saved';
+            document.getElementById('tornKeyStatus').className = 'key-status none';
+            document.getElementById('tornKeyStatus').textContent = 'No Torn API key saved';
+            showToast('All API keys cleared', 'info');
         }
 
         // ===================== FFSCOUTER REFRESH (BATCH API) =====================
@@ -1322,6 +1357,167 @@
             setTimeout(() => toast.classList.remove('show'), 2500);
         }
 
+
+        // ===================== BULK ADD =====================
+        let parsedBulkTargets = [];
+
+        function showBulkAdd() {
+            if (!isAdmin) return;
+            document.getElementById('bulkInput').value = '';
+            document.getElementById('bulkPreview').innerHTML = '';
+            document.getElementById('bulkAddBtn').style.display = 'none';
+            parsedBulkTargets = [];
+            document.getElementById('bulkAddModal').classList.add('active');
+            document.getElementById('bulkInput').focus();
+        }
+
+        function hideBulkAdd() {
+            document.getElementById('bulkAddModal').classList.remove('active');
+        }
+
+        function parseBulkInput() {
+            const text = document.getElementById('bulkInput').value;
+            if (!text.trim()) {
+                showToast('Please paste some text first!', 'warn');
+                return;
+            }
+
+            parsedBulkTargets = [];
+            const seen = new Set();
+
+            // Pattern 1: Torn profile URLs: profiles.php?XID=1234567
+            const urlPattern = /profiles\.php\?XID=(\d+)/g;
+            let match;
+            while ((match = urlPattern.exec(text)) !== null) {
+                const id = match[1];
+                if (!seen.has(id)) {
+                    seen.add(id);
+                    parsedBulkTargets.push({ id: id, name: '', level: null, source: 'url' });
+                }
+            }
+
+            // Pattern 2: Plain numbers (7-10 digits, likely Torn IDs)
+            // But avoid matching numbers that are part of URLs we already caught
+            const plainText = text.replace(/https?:\/\/[^\s]+/g, '');
+            const numPattern = /(\d{7,10})/g;
+            while ((match = numPattern.exec(plainText)) !== null) {
+                const id = match[1];
+                if (!seen.has(id)) {
+                    seen.add(id);
+                    parsedBulkTargets.push({ id: id, name: '', level: null, source: 'id' });
+                }
+            }
+
+            // Pattern 3: Name [ID] format like "Alonzo4267 [4277486]"
+            const bracketPattern = /([^\[\]
+
+]+?)\s*\[(\d{7,10})\]/g;
+            while ((match = bracketPattern.exec(text)) !== null) {
+                const id = match[2];
+                let name = match[1].trim();
+                // Clean up common prefixes
+                name = name.replace(/^\d+\.\s*/, '').replace(/^[-•*]\s*/, '').trim();
+                if (seen.has(id)) {
+                    // Update name if we found one
+                    const existing = parsedBulkTargets.find(t => t.id === id);
+                    if (existing && name) existing.name = name;
+                } else {
+                    seen.add(id);
+                    parsedBulkTargets.push({ id: id, name: name, level: null, source: 'bracket' });
+                }
+            }
+
+            if (parsedBulkTargets.length === 0) {
+                document.getElementById('bulkPreview').innerHTML = '<span style="color:#ef4444;">No player IDs found. Try pasting Torn profile URLs or IDs.</span>';
+                document.getElementById('bulkAddBtn').style.display = 'none';
+                return;
+            }
+
+            let preview = `<strong>Found ${parsedBulkTargets.length} player(s):</strong><br>`;
+            preview += parsedBulkTargets.slice(0, 10).map(t => `• ${t.name || 'Unknown'} [${t.id}]`).join('<br>');
+            if (parsedBulkTargets.length > 10) {
+                preview += `<br>... and ${parsedBulkTargets.length - 10} more`;
+            }
+            document.getElementById('bulkPreview').innerHTML = preview;
+            document.getElementById('bulkAddBtn').style.display = 'inline-flex';
+
+            showToast(`Found ${parsedBulkTargets.length} player IDs`, 'success');
+        }
+
+        async function addBulkTargets() {
+            if (!isAdmin || parsedBulkTargets.length === 0) return;
+
+            let added = 0;
+            let skipped = 0;
+            let updated = 0;
+
+            // If Torn API key is available and we don't have names/levels, fetch them
+            const needsApiFetch = parsedBulkTargets.some(t => !t.name || !t.level);
+            if (tornApiKey && needsApiFetch) {
+                showToast('Fetching player info from Torn API...', 'info');
+                const ids = parsedBulkTargets.filter(t => !t.name || !t.level).map(t => t.id).join(',');
+                try {
+                    const url = `https://api.torn.com/user/${ids}?selections=basic&key=${encodeURIComponent(tornApiKey)}`;
+                    const response = await fetch(url);
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data && !data.error) {
+                            parsedBulkTargets.forEach(target => {
+                                const playerData = data[target.id];
+                                if (playerData) {
+                                    if (!target.name) target.name = playerData.name;
+                                    if (!target.level) target.level = playerData.level;
+                                }
+                            });
+                        }
+                    }
+                } catch (e) {
+                    console.log('Torn API fetch failed:', e);
+                }
+            }
+
+            parsedBulkTargets.forEach(t => {
+                const existing = targets.find(existing => existing.id === t.id);
+                if (existing) {
+                    // Update existing target with new data if available
+                    if (t.level) existing.level = t.level;
+                    if (t.ff) existing.ff = t.ff;
+                    if (t.stats) existing.stats = t.stats;
+                    if (t.inactive) existing.inactive = t.inactive;
+                    if (t.name && !existing.name.startsWith('Player_')) existing.name = t.name;
+                    updated++;
+                    return;
+                }
+                targets.push({
+                    name: t.name || `Player_${t.id}`,
+                    id: t.id,
+                    level: t.level || 1,
+                    ff: t.ff || 3,
+                    stats: t.stats || 0,
+                    inactive: t.inactive || 'Unknown',
+                    ffscouterStats: null,
+                    ffscouterFF: null,
+                    lastUpdated: null
+                });
+                added++;
+            });
+
+            saveTargets();
+            render();
+            updateStats();
+            hideBulkAdd();
+
+            if (added > 0 && updated > 0) {
+                showToast(`Added ${added} new, updated ${updated} existing`, 'success');
+            } else if (added > 0) {
+                showToast(`Added ${added} new targets`, 'success');
+            } else if (updated > 0) {
+                showToast(`Updated ${updated} existing targets`, 'success');
+            } else {
+                showToast('All targets already existed', 'info');
+            }
+        }
+
         // ===================== EVENT LISTENERS =====================
         document.getElementById('searchInput').addEventListener('input', render);
         document.getElementById('filterFF').addEventListener('change', render);
@@ -1339,8 +1535,38 @@
             if (e.key === 'Enter') addTarget();
         });
 
+        document.getElementById('bulkInput').addEventListener('keydown', e => {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                parseBulkInput();
+            }
+        });
+
         // Init
         init();
     </script>
+
+    <!-- Bulk Add Modal -->
+    <div class="modal" id="bulkAddModal">
+        <div class="modal-box" style="max-width:600px; text-align:left;">
+            <h3 style="text-align:center;">Bulk Add Targets</h3>
+            <div class="info-text">
+                Paste Torn profile URLs, player IDs, or copy-paste from Torn pages. The tracker will extract all player IDs automatically.
+                <br><br>
+                <strong>Examples:</strong><br>
+                • https://www.torn.com/profiles.php?XID=4277486<br>
+                • 4277486, 4162677, 4282695<br>
+                • Alonzo4267 [4277486]<br>
+                • Copy-paste from attack log or enemy list
+            </div>
+            <textarea id="bulkInput" style="width:100%; min-height:120px; background:#0f172a; border:1px solid #475569; color:#e2e8f0; padding:12px; border-radius:8px; font-size:0.9rem; resize:vertical;" placeholder="Paste URLs, IDs, or Torn page text here..."></textarea>
+            <div id="bulkPreview" style="margin:10px 0; max-height:150px; overflow-y:auto; font-size:0.85rem; color:#94a3b8;"></div>
+            <div style="display:flex; gap:10px; justify-content:center;">
+                <button class="btn btn-success" onclick="parseBulkInput()">Preview</button>
+                <button class="btn btn-success" onclick="addBulkTargets()" id="bulkAddBtn" style="display:none;">Add All</button>
+                <button class="cancel-btn" onclick="hideBulkAdd()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
 </body>
 </html>
