@@ -1375,6 +1375,67 @@
             document.getElementById('bulkAddModal').classList.remove('active');
         }
 
+        function parseFFScouterTable(text) {
+            const lines = text.split(/
+/).map(l => l.trim()).filter(l => l.length > 0);
+            const players = [];
+            const nameIdPattern = /^([^\[\]]+?)\s*\[(\d{7,10})\]\s*$/;
+
+            let i = 0;
+            while (i < lines.length) {
+                const line = lines[i];
+                const nameMatch = line.match(nameIdPattern);
+
+                if (nameMatch) {
+                    const name = nameMatch[1].trim();
+                    const id = nameMatch[2];
+
+                    if (i + 1 < lines.length) {
+                        const dataLine = lines[i + 1];
+                        const parts = dataLine.split(/\s+/).filter(p => p.length > 0);
+
+                        if (parts.length >= 4) {
+                            const level = parseInt(parts[0]);
+                            const ff = parseFloat(parts[1]);
+                            const stats = parseInt(parts[2]);
+                            const inactive = parts.slice(3).join(' ');
+
+                            if (!isNaN(level) && level >= 1 && level <= 100 && 
+                                !isNaN(ff) && ff >= 1 && ff <= 5 &&
+                                !isNaN(stats) && stats > 0) {
+                                players.push({
+                                    name: name,
+                                    id: id,
+                                    level: level,
+                                    ff: ff,
+                                    stats: stats,
+                                    inactive: inactive,
+                                    source: 'ffscouter'
+                                });
+                                i += 2;
+                                continue;
+                            }
+                        }
+                    }
+
+                    players.push({
+                        name: name,
+                        id: id,
+                        level: null,
+                        ff: null,
+                        stats: null,
+                        inactive: null,
+                        source: 'ffscouter'
+                    });
+                    i++;
+                } else {
+                    i++;
+                }
+            }
+
+            return players;
+        }
+
         function parseBulkInput() {
             const text = document.getElementById('bulkInput').value;
             if (!text.trim()) {
@@ -1385,59 +1446,78 @@
             parsedBulkTargets = [];
             const seen = new Set();
 
-            // Pattern 1: Torn profile URLs: profiles.php?XID=1234567
-            const urlPattern = /profiles\.php\?XID=(\d+)/g;
-            let match;
-            while ((match = urlPattern.exec(text)) !== null) {
-                const id = match[1];
-                if (!seen.has(id)) {
-                    seen.add(id);
-                    parsedBulkTargets.push({ id: id, name: '', level: null, source: 'url' });
-                }
+            const ffscouterPlayers = parseFFScouterTable(text);
+            if (ffscouterPlayers.length > 0) {
+                ffscouterPlayers.forEach(p => {
+                    if (!seen.has(p.id)) {
+                        seen.add(p.id);
+                        parsedBulkTargets.push(p);
+                    }
+                });
             }
 
-            // Pattern 2: Plain numbers (7-10 digits, likely Torn IDs)
-            // But avoid matching numbers that are part of URLs we already caught
-            const plainText = text.replace(/https?:\/\/[^\s]+/g, '');
-            const numPattern = /(\d{7,10})/g;
-            while ((match = numPattern.exec(plainText)) !== null) {
-                const id = match[1];
-                if (!seen.has(id)) {
-                    seen.add(id);
-                    parsedBulkTargets.push({ id: id, name: '', level: null, source: 'id' });
+            if (parsedBulkTargets.length === 0) {
+                const urlPattern = /profiles\.php\?XID=(\d+)/g;
+                let match;
+                while ((match = urlPattern.exec(text)) !== null) {
+                    const id = match[1];
+                    if (!seen.has(id)) {
+                        seen.add(id);
+                        parsedBulkTargets.push({ id: id, name: '', level: null, ff: null, stats: null, inactive: null, source: 'url' });
+                    }
                 }
-            }
 
-            // Pattern 3: Name [ID] format like "Alonzo4267 [4277486]"
-            const bracketPattern = /([^\[\]
+                const plainText = text.replace(/https?:\/\/[^\s]+/g, '');
+                const numPattern = /(\d{7,10})/g;
+                while ((match = numPattern.exec(plainText)) !== null) {
+                    const id = match[1];
+                    if (!seen.has(id)) {
+                        seen.add(id);
+                        parsedBulkTargets.push({ id: id, name: '', level: null, ff: null, stats: null, inactive: null, source: 'id' });
+                    }
+                }
 
-]+?)\s*\[(\d{7,10})\]/g;
-            while ((match = bracketPattern.exec(text)) !== null) {
-                const id = match[2];
-                let name = match[1].trim();
-                // Clean up common prefixes
-                name = name.replace(/^\d+\.\s*/, '').replace(/^[-•*]\s*/, '').trim();
-                if (seen.has(id)) {
-                    // Update name if we found one
-                    const existing = parsedBulkTargets.find(t => t.id === id);
-                    if (existing && name) existing.name = name;
-                } else {
-                    seen.add(id);
-                    parsedBulkTargets.push({ id: id, name: name, level: null, source: 'bracket' });
+                const bracketPattern = /([^\[\]
+]+?)\s*\[(\d{7,10})\]/g;
+                while ((match = bracketPattern.exec(text)) !== null) {
+                    const id = match[2];
+                    let name = match[1].trim();
+                    name = name.replace(/^\d+\.\s*/, '').replace(/^[-•*]\s*/, '').trim();
+                    if (seen.has(id)) {
+                        const existing = parsedBulkTargets.find(t => t.id === id);
+                        if (existing && name) existing.name = name;
+                    } else {
+                        seen.add(id);
+                        parsedBulkTargets.push({ id: id, name: name, level: null, ff: null, stats: null, inactive: null, source: 'bracket' });
+                    }
                 }
             }
 
             if (parsedBulkTargets.length === 0) {
-                document.getElementById('bulkPreview').innerHTML = '<span style="color:#ef4444;">No player IDs found. Try pasting Torn profile URLs or IDs.</span>';
+                document.getElementById('bulkPreview').innerHTML = '<span style="color:#ef4444;">No player IDs found. Try pasting Torn profile URLs, IDs, or FFScouter table data.</span>';
                 document.getElementById('bulkAddBtn').style.display = 'none';
                 return;
             }
 
             let preview = `<strong>Found ${parsedBulkTargets.length} player(s):</strong><br>`;
-            preview += parsedBulkTargets.slice(0, 10).map(t => `• ${t.name || 'Unknown'} [${t.id}]`).join('<br>');
-            if (parsedBulkTargets.length > 10) {
-                preview += `<br>... and ${parsedBulkTargets.length - 10} more`;
+            preview += '<table style="width:100%; font-size:0.8rem; margin-top:8px; border-collapse:collapse;">';
+            preview += '<tr style="color:#94a3b8; text-align:left;"><th style="padding:3px 6px;">Name</th><th style="padding:3px 6px;">ID</th><th style="padding:3px 6px;">Lvl</th><th style="padding:3px 6px;">FF</th><th style="padding:3px 6px;">Stats</th><th style="padding:3px 6px;">Inactive</th></tr>';
+
+            parsedBulkTargets.slice(0, 8).forEach(t => {
+                preview += `<tr style="border-top:1px solid #334155;">
+                    <td style="padding:3px 6px;">${escapeHtml(t.name || 'Unknown')}</td>
+                    <td style="padding:3px 6px;">${t.id}</td>
+                    <td style="padding:3px 6px;">${t.level || '?'}</td>
+                    <td style="padding:3px 6px;">${t.ff || '?'}</td>
+                    <td style="padding:3px 6px;">${t.stats || '?'}</td>
+                    <td style="padding:3px 6px;">${escapeHtml(t.inactive || '?')}</td>
+                </tr>`;
+            });
+            if (parsedBulkTargets.length > 8) {
+                preview += `<tr><td colspan="6" style="padding:3px 6px; color:#64748b;">... and ${parsedBulkTargets.length - 8} more</td></tr>`;
             }
+            preview += '</table>';
+
             document.getElementById('bulkPreview').innerHTML = preview;
             document.getElementById('bulkAddBtn').style.display = 'inline-flex';
 
@@ -1451,7 +1531,6 @@
             let skipped = 0;
             let updated = 0;
 
-            // If Torn API key is available and we don't have names/levels, fetch them
             const needsApiFetch = parsedBulkTargets.some(t => !t.name || !t.level);
             if (tornApiKey && needsApiFetch) {
                 showToast('Fetching player info from Torn API...', 'info');
@@ -1479,7 +1558,6 @@
             parsedBulkTargets.forEach(t => {
                 const existing = targets.find(existing => existing.id === t.id);
                 if (existing) {
-                    // Update existing target with new data if available
                     if (t.level) existing.level = t.level;
                     if (t.ff) existing.ff = t.ff;
                     if (t.stats) existing.stats = t.stats;
@@ -1517,7 +1595,6 @@
                 showToast('All targets already existed', 'info');
             }
         }
-
         // ===================== EVENT LISTENERS =====================
         document.getElementById('searchInput').addEventListener('input', render);
         document.getElementById('filterFF').addEventListener('change', render);
