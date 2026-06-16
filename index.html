@@ -733,68 +733,88 @@
 
         // ===================== INIT =====================
         async function init() {
-            console.log('init() starting...');
+            console.log('=== init() starting ===');
 
-            // Try to load from shared targets.json first (for the latest shared list)
-            try {
-                const response = await fetch('targets.json?v=' + Date.now(), { cache: 'no-store' });
-                if (response.ok) {
-                    const sharedData = await response.json();
-                    if (Array.isArray(sharedData) && sharedData.length > 0) {
-                        targets = sharedData;
+            // STEP 1: ALWAYS load defaults first as safety net
+            targets = JSON.parse(JSON.stringify(defaultTargets));
+            console.log('Step 1 - Defaults loaded:', targets.length);
+
+            // STEP 2: Try localStorage (might have newer data than defaults)
+            let saved = localStorage.getItem('tornTargets');
+            if (!saved) saved = localStorage.getItem('tornTargetsBackup');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        targets = parsed;
                         targets.forEach(t => {
                             if (t.ffscouterStats === undefined) t.ffscouterStats = null;
                             if (t.ffscouterFF === undefined) t.ffscouterFF = null;
                             if (t.lastUpdated === undefined) t.lastUpdated = null;
                         });
-                        console.log('Loaded ' + targets.length + ' targets from shared targets.json');
-                        // Save to localStorage so it works offline too
-                        saveTargets();
-                    } else if (Array.isArray(sharedData) && sharedData.length === 0) {
-                        console.log('Shared targets.json is empty, using defaults');
-                        throw new Error('Empty shared data');
+                        console.log('Step 2 - localStorage loaded:', targets.length);
                     } else {
-                        throw new Error('Invalid shared data');
+                        console.log('Step 2 - localStorage empty/invalid, keeping defaults');
                     }
-                } else {
-                    throw new Error('targets.json not found');
+                } catch (err) {
+                    console.error('Step 2 - Failed to parse localStorage:', err);
                 }
-            } catch (e) {
-                console.log('Could not load shared targets.json:', e.message);
-                // Fall back to localStorage
-                let saved = localStorage.getItem('tornTargets');
-                if (!saved) {
-                    saved = localStorage.getItem('tornTargetsBackup');
-                }
-
-                if (saved) {
-                    try {
-                        const parsed = JSON.parse(saved);
-                        if (Array.isArray(parsed) && parsed.length > 0) {
-                            targets = parsed;
-                            targets.forEach(t => {
-                                if (t.ffscouterStats === undefined) t.ffscouterStats = null;
-                                if (t.ffscouterFF === undefined) t.ffscouterFF = null;
-                                if (t.lastUpdated === undefined) t.lastUpdated = null;
-                            });
-                            console.log('Loaded ' + targets.length + ' targets from localStorage');
-                        } else {
-                            console.log('localStorage data is empty or invalid, using defaults');
-                            targets = JSON.parse(JSON.stringify(defaultTargets));
-                            saveTargets();
-                        }
-                    } catch (err) {
-                        console.error('Failed to parse saved targets:', err);
-                        targets = JSON.parse(JSON.stringify(defaultTargets));
-                        saveTargets();
-                    }
-                } else {
-                    console.log('No saved data, using defaults');
-                    targets = JSON.parse(JSON.stringify(defaultTargets));
-                    saveTargets();
-                }
+            } else {
+                console.log('Step 2 - No localStorage data');
             }
 
+            // STEP 3: Try to fetch shared targets.json (latest shared data)
+            try {
+                const fetchUrl = 'targets.json?v=' + Date.now();
+                console.log('Step 3 - Fetching:', fetchUrl);
+                const response = await fetch(fetchUrl, { cache: 'no-store' });
+                console.log('Step 3 - Response status:', response.status, 'ok:', response.ok);
+
+                if (response.ok) {
+                    const responseText = await response.text();
+                    console.log('Step 3 - Response length:', responseText.length);
+                    console.log('Step 3 - First 100 chars:', responseText.substring(0, 100));
+
+                    // Check if response is HTML instead of JSON (GitHub Pages fallback)
+                    if (responseText.trim().startsWith('<') || responseText.trim().startsWith('<!')) {
+                        console.log('Step 3 - WARNING: Response is HTML, not JSON. GitHub Pages may not have propagated targets.json yet.');
+                        // Keep whatever we have (defaults or localStorage)
+                    } else {
+                        try {
+                            const sharedData = JSON.parse(responseText);
+                            console.log('Step 3 - Parsed type:', typeof sharedData, 'isArray:', Array.isArray(sharedData), 'length:', sharedData.length);
+
+                            if (Array.isArray(sharedData) && sharedData.length > 0) {
+                                targets = sharedData;
+                                targets.forEach(t => {
+                                    if (t.ffscouterStats === undefined) t.ffscouterStats = null;
+                                    if (t.ffscouterFF === undefined) t.ffscouterFF = null;
+                                    if (t.lastUpdated === undefined) t.lastUpdated = null;
+                                });
+                                console.log('Step 3 - Loaded from targets.json:', targets.length);
+                                saveTargets(); // Cache to localStorage
+                            } else {
+                                console.log('Step 3 - targets.json empty or invalid, keeping current data');
+                            }
+                        } catch (parseErr) {
+                            console.error('Step 3 - JSON parse error:', parseErr.message);
+                        }
+                    }
+                } else {
+                    console.log('Step 3 - Fetch failed with status:', response.status);
+                }
+            } catch (e) {
+                console.error('Step 3 - Fetch error:', e.message);
+            }
+
+            // STEP 4: Final safety check - if still empty, force defaults
+            if (!Array.isArray(targets) || targets.length === 0) {
+                console.log('Step 4 - EMERGENCY: targets is empty, forcing defaults!');
+                targets = JSON.parse(JSON.stringify(defaultTargets));
+                saveTargets();
+            }
+
+            // Load settings
             ffscouterKey = localStorage.getItem('tornFFScouterKey') || '';
             tornApiKey = localStorage.getItem('tornApiKey') || '';
             githubToken = localStorage.getItem('githubToken') || '';
@@ -804,10 +824,11 @@
             if (adminSession === 'true') {
                 isAdmin = true;
             }
+
             updateAdminUI();
             render();
             updateStats();
-            console.log('init() complete. Targets:', targets.length);
+            console.log('=== init() complete. Final targets count:', targets.length, '===');
         }
 
         function saveTargets() {
