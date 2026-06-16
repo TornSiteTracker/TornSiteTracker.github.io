@@ -1853,30 +1853,43 @@
         }
 
                 // ===================== EVENT LISTENERS =====================
-        document.getElementById('searchInput').addEventListener('input', render);
-        document.getElementById('filterFF').addEventListener('change', render);
-        document.getElementById('filterLevel').addEventListener('change', render);
+        function setupEventListeners() {
+            document.getElementById('searchInput').addEventListener('input', render);
+            document.getElementById('filterFF').addEventListener('change', render);
+            document.getElementById('filterLevel').addEventListener('change', render);
 
-        document.getElementById('loginPassword').addEventListener('keydown', e => {
-            if (e.key === 'Enter') doLogin();
-        });
+            document.getElementById('loginPassword').addEventListener('keydown', e => {
+                if (e.key === 'Enter') doLogin();
+            });
 
-        document.getElementById('ffscouterKey').addEventListener('keydown', e => {
-            if (e.key === 'Enter') saveSettings();
-        });
+            document.getElementById('ffscouterKey').addEventListener('keydown', e => {
+                if (e.key === 'Enter') saveSettings();
+            });
 
-        document.getElementById('addForm').addEventListener('keydown', e => {
-            if (e.key === 'Enter') addTarget();
-        });
+            document.getElementById('addForm').addEventListener('keydown', e => {
+                if (e.key === 'Enter') addTarget();
+            });
 
-        document.getElementById('bulkInput').addEventListener('keydown', e => {
-            if (e.key === 'Enter' && e.ctrlKey) {
-                parseBulkInput();
+            const bulkInput = document.getElementById('bulkInput');
+            if (bulkInput) {
+                bulkInput.addEventListener('keydown', e => {
+                    if (e.key === 'Enter' && e.ctrlKey) {
+                        parseBulkInput();
+                    }
+                });
             }
-        });
+        }
 
-        // Init
-        init();
+        // Init when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function() {
+                setupEventListeners();
+                init();
+            });
+        } else {
+            setupEventListeners();
+            init();
+        }
     </script>
 
     <!-- Bulk Add Modal -->
