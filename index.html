@@ -1348,6 +1348,8 @@
 
 
         // ===================== BULK ADD =====================
+        let parsedBulkTargets = [];
+
         function showBulkAdd() {
             if (!isAdmin) return;
             document.getElementById('bulkInput').value = '';
@@ -1363,8 +1365,7 @@
         }
 
         function parseFFScouterTable(text) {
-            const lines = text.split(/
-/).map(l => l.trim()).filter(l => l.length > 0);
+            const lines = text.split(/\n/).map(l => l.trim()).filter(l => l.length > 0);
             const players = [];
             const nameIdPattern = /^([^\[\]]+?)\s*\[(\d{7,10})\]\s*$/;
 
@@ -1455,7 +1456,7 @@
                 }
 
                 const plainText = text.replace(/https?:\/\/[^\s]+/g, '');
-                const numPattern = /(\d{7,10})/g;
+                const numPattern = /\b(\d{7,10})\b/g;
                 while ((match = numPattern.exec(plainText)) !== null) {
                     const id = match[1];
                     if (!seen.has(id)) {
@@ -1464,12 +1465,11 @@
                     }
                 }
 
-                const bracketPattern = /([^\[\]
-]+?)\s*\[(\d{7,10})\]/g;
+                const bracketPattern = /([^\[\]\n\r]+?)\s*\[(\d{7,10})\]/g;
                 while ((match = bracketPattern.exec(text)) !== null) {
                     const id = match[2];
                     let name = match[1].trim();
-                    name = name.replace(/^\d+\.\s*/, '').replace(/^[-•*]\s*/, '').trim();
+                    name = name.replace(/^\d+\.\s*/, '').replace(/^[-\u2022*]\s*/, '').trim();
                     if (seen.has(id)) {
                         const existing = parsedBulkTargets.find(t => t.id === id);
                         if (existing && name) existing.name = name;
@@ -1486,29 +1486,29 @@
                 return;
             }
 
-            let preview = `<strong>Found ${parsedBulkTargets.length} player(s):</strong><br>`;
+            let preview = '<strong>Found ' + parsedBulkTargets.length + ' player(s):</strong><br>';
             preview += '<table style="width:100%; font-size:0.8rem; margin-top:8px; border-collapse:collapse;">';
             preview += '<tr style="color:#94a3b8; text-align:left;"><th style="padding:3px 6px;">Name</th><th style="padding:3px 6px;">ID</th><th style="padding:3px 6px;">Lvl</th><th style="padding:3px 6px;">FF</th><th style="padding:3px 6px;">Stats</th><th style="padding:3px 6px;">Inactive</th></tr>';
 
             parsedBulkTargets.slice(0, 8).forEach(t => {
-                preview += `<tr style="border-top:1px solid #334155;">
-                    <td style="padding:3px 6px;">${escapeHtml(t.name || 'Unknown')}</td>
-                    <td style="padding:3px 6px;">${t.id}</td>
-                    <td style="padding:3px 6px;">${t.level || '?'}</td>
-                    <td style="padding:3px 6px;">${t.ff || '?'}</td>
-                    <td style="padding:3px 6px;">${t.stats || '?'}</td>
-                    <td style="padding:3px 6px;">${escapeHtml(t.inactive || '?')}</td>
-                </tr>`;
+                preview += '<tr style="border-top:1px solid #334155;">' +
+                    '<td style="padding:3px 6px;">' + escapeHtml(t.name || 'Unknown') + '</td>' +
+                    '<td style="padding:3px 6px;">' + t.id + '</td>' +
+                    '<td style="padding:3px 6px;">' + (t.level || '?') + '</td>' +
+                    '<td style="padding:3px 6px;">' + (t.ff || '?') + '</td>' +
+                    '<td style="padding:3px 6px;">' + (t.stats || '?') + '</td>' +
+                    '<td style="padding:3px 6px;">' + escapeHtml(t.inactive || '?') + '</td>' +
+                '</tr>';
             });
             if (parsedBulkTargets.length > 8) {
-                preview += `<tr><td colspan="6" style="padding:3px 6px; color:#64748b;">... and ${parsedBulkTargets.length - 8} more</td></tr>`;
+                preview += '<tr><td colspan="6" style="padding:3px 6px; color:#64748b;">... and ' + (parsedBulkTargets.length - 8) + ' more</td></tr>';
             }
             preview += '</table>';
 
             document.getElementById('bulkPreview').innerHTML = preview;
             document.getElementById('bulkAddBtn').style.display = 'inline-flex';
 
-            showToast(`Found ${parsedBulkTargets.length} player IDs`, 'success');
+            showToast('Found ' + parsedBulkTargets.length + ' player IDs', 'success');
         }
 
         async function addBulkTargets() {
@@ -1522,7 +1522,7 @@
                 showToast('Fetching player info from Torn API...', 'info');
                 const ids = parsedBulkTargets.filter(t => !t.name || !t.level).map(t => t.id).join(',');
                 try {
-                    const url = `https://api.torn.com/user/${ids}?selections=basic&key=${encodeURIComponent(tornApiKey)}`;
+                    const url = 'https://api.torn.com/user/' + ids + '?selections=basic&key=' + encodeURIComponent(tornApiKey);
                     const response = await fetch(url);
                     if (response.ok) {
                         const data = await response.json();
@@ -1553,7 +1553,7 @@
                     return;
                 }
                 targets.push({
-                    name: t.name || `Player_${t.id}`,
+                    name: t.name || 'Player_' + t.id,
                     id: t.id,
                     level: t.level || 1,
                     ff: t.ff || 3,
@@ -1572,17 +1572,16 @@
             hideBulkAdd();
 
             if (added > 0 && updated > 0) {
-                showToast(`Added ${added} new, updated ${updated} existing`, 'success');
+                showToast('Added ' + added + ' new, updated ' + updated + ' existing', 'success');
             } else if (added > 0) {
-                showToast(`Added ${added} new targets`, 'success');
+                showToast('Added ' + added + ' new targets', 'success');
             } else if (updated > 0) {
-                showToast(`Updated ${updated} existing targets`, 'success');
+                showToast('Updated ' + updated + ' existing targets', 'success');
             } else {
                 showToast('All targets already existed', 'info');
             }
         }
-
-                // ===================== EVENT LISTENERS =====================
+        // ===================== EVENT LISTENERS =====================
         document.getElementById('searchInput').addEventListener('input', render);
         document.getElementById('filterFF').addEventListener('change', render);
         document.getElementById('filterLevel').addEventListener('change', render);
