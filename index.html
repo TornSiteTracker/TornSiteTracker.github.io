@@ -859,65 +859,91 @@
             const progressBar = document.getElementById('progressBar');
             const progressFill = document.getElementById('progressFill');
             progressBar.classList.add('active');
-            progressFill.style.width = '10%';
+            progressFill.style.width = '5%';
 
             showToast('Fetching stats from FFScouter...', 'info');
 
-            // Build comma-separated list of all target IDs (batch up to 205)
-            const targetIds = targets.map(t => t.id).join(',');
+            // Batch target IDs (max 205 per request)
+            const BATCH_SIZE = 205;
+            const allTargetIds = targets.map(t => t.id);
+            const batches = [];
+            for (let i = 0; i < allTargetIds.length; i += BATCH_SIZE) {
+                batches.push(allTargetIds.slice(i, i + BATCH_SIZE));
+            }
 
-            try {
-                const url = `${FFSCOUTER_API_BASE}/get-stats?key=${ffscouterKey}&targets=${targetIds}`;
-                const response = await fetch(url, { method: 'GET' });
-                progressFill.style.width = '50%';
+            let totalUpdated = 0;
+            let totalNoData = 0;
+            let totalErrors = 0;
 
-                if (!response.ok) {
-                    const errData = await response.json().catch(() => ({}));
-                    const errMsg = errData.error || 'HTTP ' + response.status;
-                    showToast('FFScouter error: ' + errMsg, 'error');
-                    progressBar.classList.remove('active');
-                    return;
-                }
+            for (let batchIdx = 0; batchIdx < batches.length; batchIdx++) {
+                const batch = batches[batchIdx];
+                const targetIdsStr = batch.join(',');
+                const progress = ((batchIdx + 1) / batches.length) * 100;
+                progressFill.style.width = Math.max(5, progress - 10) + '%';
 
-                const data = await response.json();
-                progressFill.style.width = '80%';
+                try {
+                    const url = `${FFSCOUTER_API_BASE}/get-stats?key=${encodeURIComponent(ffscouterKey)}&targets=${targetIdsStr}`;
+                    const response = await fetch(url, { method: 'GET' });
 
-                // The response is an array of player objects
-                if (Array.isArray(data)) {
-                    let updated = 0;
-                    let noData = 0;
-
-                    data.forEach(playerData => {
-                        const pid = String(playerData.player_id);
-                        const target = targets.find(t => t.id === pid);
-                        if (target) {
-                            if (playerData.bs_estimate !== null && playerData.bs_estimate !== undefined) {
-                                target.ffscouterStats = playerData.bs_estimate;
-                                target.ffscouterFF = playerData.fair_fight;
-                                target.lastUpdated = playerData.last_updated ? new Date(playerData.last_updated * 1000).toISOString() : null;
-                                updated++;
-                            } else {
-                                noData++;
-                            }
+                    if (!response.ok) {
+                        const errData = await response.json().catch(() => ({}));
+                        const errMsg = errData.error || `HTTP ${response.status}`;
+                        if (errData.code) {
+                            showToast(`FFScouter error [${errData.code}]: ${errMsg}`, 'error');
+                        } else {
+                            showToast(`FFScouter error: ${errMsg}`, 'error');
                         }
-                    });
-
-                    saveTargets();
-                    render();
-                    updateStats();
-
-                    if (updated > 0) {
-                        showToast(`Updated ${updated} targets from FFScouter (${noData} no data)`, 'success');
-                    } else {
-                        showToast('No FFScouter data found for any targets. They may not be in the database yet.', 'warn');
+                        totalErrors++;
+                        continue;
                     }
-                } else if (data.error) {
-                    showToast('FFScouter error: ' + data.error, 'error');
-                } else {
-                    showToast('Unexpected response from FFScouter', 'error');
+
+                    const data = await response.json();
+
+                    if (Array.isArray(data)) {
+                        data.forEach(playerData => {
+                            const pid = String(playerData.player_id);
+                            const target = targets.find(t => t.id === pid);
+                            if (target) {
+                                if (playerData.bs_estimate !== null && playerData.bs_estimate !== undefined) {
+                                    target.ffscouterStats = playerData.bs_estimate;
+                                    target.ffscouterStatsHuman = playerData.bs_estimate_human || null;
+                                    target.ffscouterFF = playerData.fair_fight;
+                                    target.lastUpdated = playerData.last_updated ? new Date(playerData.last_updated * 1000).toISOString() : null;
+                                    target.source = playerData.source || 'bss';
+                                    target.premiumInsights = playerData.premium_insights_available || false;
+                                    target.distribution = playerData.distribution || null;
+                                    totalUpdated++;
+                                } else {
+                                    totalNoData++;
+                                }
+                            }
+                        });
+                    } else if (data.error) {
+                        showToast(`FFScouter error: ${data.error}`, 'error');
+                        totalErrors++;
+                    }
+                } catch (err) {
+                    showToast(`Network error (batch ${batchIdx + 1}): ${err.message}`, 'error');
+                    totalErrors++;
                 }
-            } catch (err) {
-                showToast('Network error: ' + err.message, 'error');
+
+                // Rate limit: 20 req/min = 3 sec between requests, use 4 sec to be safe
+                if (batchIdx < batches.length - 1) {
+                    showToast(`Waiting for rate limit... batch ${batchIdx + 1}/${batches.length}`, 'info');
+                    await new Promise(r => setTimeout(r, 4000));
+                }
+            }
+
+            saveTargets();
+            render();
+            updateStats();
+
+            if (totalUpdated > 0) {
+                showToast(`Updated ${totalUpdated} targets from FFScouter (${totalNoData} no data, ${totalErrors} errors)`, 'success');
+            } else if (totalErrors > 0) {
+                showToast(`Refresh failed: ${totalErrors} error(s), ${totalNoData} no data`, 'error');
+            } else {
+                showToast('No FFScouter data found for any targets. They may not be in the database yet.', 'warn');
             }
 
             progressFill.style.width = '100%';
@@ -975,6 +1001,7 @@
 
                 let statsDisplay = '';
                 let statsClass = 'stats-value';
+                let statsTooltip = '';
                 if (t.ffscouterStats !== null && t.ffscouterStats !== undefined) {
                     const daysOld = t.lastUpdated ? (Date.now() - new Date(t.lastUpdated).getTime()) / (1000 * 60 * 60 * 24) : 999;
                     if (daysOld < 7) {
@@ -984,7 +1011,14 @@
                     } else {
                         statsClass = 'stats-value stats-old';
                     }
-                    statsDisplay = t.ffscouterStats.toLocaleString();
+                    const humanReadable = t.ffscouterStatsHuman || t.ffscouterStats.toLocaleString();
+                    const sourceBadge = t.source === 'premium' ? '<span style="color:#a855f7;font-size:0.7rem;">★</span>' : '';
+                    statsDisplay = humanReadable + ' ' + sourceBadge;
+
+                    // Build tooltip with distribution if available
+                    if (t.distribution && t.distribution.distribution_human) {
+                        statsTooltip = `title="${t.distribution.distribution_human}"`;
+                    }
                 } else {
                     statsClass = 'stats-value stats-na';
                     statsDisplay = t.stats ? t.stats.toLocaleString() : 'N/A';
@@ -1020,7 +1054,7 @@
                     </td>
                     <td><span class="level-badge">${t.level}</span></td>
                     <td><span class="ff-badge ff-${Math.round(t.ffscouterFF || t.ff)}">${(t.ffscouterFF || t.ff).toFixed ? (t.ffscouterFF || t.ff).toFixed(2) : (t.ffscouterFF || t.ff)}</span></td>
-                    <td><span class="${statsClass}">${statsDisplay}</span></td>
+                    <td><span class="${statsClass}" ${statsTooltip}>${statsDisplay}</span></td>
                     <td><span class="inactive ${inactiveClass}">${escapeHtml(t.inactive)}</span></td>
                     <td>${infoDisplay}</td>
                     ${actionsCell}
